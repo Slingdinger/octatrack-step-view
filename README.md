@@ -33,4 +33,4 @@ It conflicts with nothing in the hook set it claims, but check `make modules` fo
 
 ## Licence and credit
 
-Local module by Zach (OctaZach). octabam is by Sam Banks and contributors; see its repository for its terms. No licence is set here yet: add one before others reuse the code.
+MIT (see `LICENSE`): use, change and ship it, keeping the notice. Local module by Zach (OctaZach). It builds inside [octabam](https://github.com/sambanks/octabam) by Sam Banks and contributors, which has its own terms.

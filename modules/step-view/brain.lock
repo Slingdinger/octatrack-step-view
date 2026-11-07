@@ -1,0 +1,76 @@
+{
+ "params": {},
+ "retired": {
+  "params": [],
+  "settings": []
+ },
+ "settings": {
+  "1": {
+   "name": "FULL",
+   "type": "binary"
+  },
+  "10": {
+   "max": 2,
+   "min": 0,
+   "name": "ZOOM",
+   "step": 1,
+   "type": "number"
+  },
+  "2": {
+   "name": "PAGES",
+   "type": "binary"
+  },
+  "3": {
+   "name": "PITCH",
+   "type": "binary"
+  },
+  "4": {
+   "labels": [
+    "ROLL 16",
+    "ROLL 32",
+    "KEYS 16"
+   ],
+   "name": "LAYOUT",
+   "type": "option"
+  },
+  "5": {
+   "max": 104,
+   "min": 0,
+   "name": "RANGE",
+   "step": 1,
+   "type": "number"
+  },
+  "6": {
+   "max": 23,
+   "min": 0,
+   "name": "ROW",
+   "step": 1,
+   "type": "number"
+  },
+  "7": {
+   "max": 13,
+   "min": 0,
+   "name": "ROLL16 BASE",
+   "step": 1,
+   "type": "number"
+  },
+  "8": {
+   "max": 112,
+   "min": -1,
+   "name": "TRIG ROOT",
+   "step": 1,
+   "type": "number"
+  },
+  "9": {
+   "max": 4,
+   "min": 2,
+   "name": "FULL ZOOM",
+   "step": 1,
+   "type": "number"
+  }
+ },
+ "store": {
+  "id": "octabam.step-view",
+  "major": 1
+ }
+}

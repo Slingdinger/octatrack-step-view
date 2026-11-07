@@ -1,4 +1,4 @@
-| STEP VIEW (called ARP BLANK until OctaZach 140) -- the MIDI ARP page as a step editor for the 8 MIDI tracks
+| STEP VIEW -- a step editor and pitch view for the 8 MIDI tracks, drawn over the MIDI ARP page in MIXER + MIDI's view
 | (manifest.py and README.md say what and why).
 
         .text

@@ -8653,19 +8653,20 @@ sg_flab:
         sub.l   sg_rh,%d1
         moveq   #0,%d2
         bsr     sg_tx
-        tst.l   sg_tnum                 | the cursor on the number (build 143): a box a pixel outside the
-        beq.s   .Lfl_n                  | active track's inverted cell
-        cmp.l   sg_row,%d7
+        tst.l   sg_tnum                 | the cursor on the number (build 144; build 146: it flashes, its
+        beq.s   .Lfl_n                  | cell inverted in the cursor's blink phase, as the step cursor;
+        cmp.l   sg_row,%d7              | the box of 144-145 gone)
         bne.s   .Lfl_n
-        moveq   #SG_FLD-2,%d0
+        moveq   #32,%d0
+        and.l   sg_bk,%d0
+        beq.s   .Lfl_n
+        moveq   #SG_FLD-1,%d0
         move.l  sg_rh,%d3
         add.l   %a4,%d3
-        moveq   #-7,%d1
+        moveq   #-6,%d1
         add.l   %d3,%d1
-        moveq   #SG_FLD+4,%d2
-        addq.l  #1,%d3
-        lea     SG_RECT,%a0
-        bsr     sg_r1
+        moveq   #SG_FLD+3,%d2
+        bsr     sg_inv
 .Lfl_n: moveq   #0,%d0                  | the active track's: inverted, the glyph and a pixel round it
         move.b  0x100b14cc,%d0
         cmp.l   %d7,%d0
@@ -12826,7 +12827,7 @@ sg_abk: .long   0                       | 1: FUNC + BANK opened the ARRANGER men
 sg_scret: .long 0                       | 1: ALL TRACK SCALES opened from a stock page (build 116)
 sg_ctu: .long   64                      | and its Part's TUNE
 sg_mxa: .long   0                       | 1: MIDI alone pressed in the view, its release not yet
-sg_ltm: .ascii  "TRKS:\0"
+sg_ltm: .ascii  "MIDI:\0"                 | (TRKS: until build 146; Zach: the title says MIDI)
 sg_lta: .ascii  "AUD:\0\0"
 sg_lpm: .ascii  "PAGES:\0"
 sg_lpa: .ascii  "APGS:\0\0"
@@ -12873,7 +12874,7 @@ sg_ck:  .long   0                       | its kind: 0 a run, 1 a row, 2 pages
 sg_cpm: .long   0                       | pages: which
 sg_ccnt: .long  0                       | the steps a copy or clear took
 sg_cblk: .space 36                      | a cleared step (sg_cclr)
-sg_ftk: .asciz  "TRKS:"                 | (AUD: in AUDIO, sg_alab: 6 bytes)
+sg_ftk: .asciz  "MIDI:"                 | (AUD: in AUDIO, sg_alab: 6 bytes; TRKS: until build 146)
 sg_fpg: .asciz  "PAGES:"                | (APGS: in AUDIO: 7 bytes)
 sg_ftp: .asciz  "%d/%d"
 sg_fpt: .asciz  "%c%02d"

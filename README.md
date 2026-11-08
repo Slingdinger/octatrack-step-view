@@ -46,7 +46,7 @@ Each view answers one question.
 
 ## 1. Tracks: the whole pattern
 
-All 8 MIDI tracks, one row each. Use it to place trigs quickly and see what every track is doing.
+All 8 MIDI tracks, one row each. The title says **MIDI** (or **AUD** for the audio tracks). Use it to place trigs quickly and see what every track is doing.
 
 **Arranger off**
 
@@ -75,13 +75,13 @@ How to read it:
 - At the right: the cursor's step (S01) and which part of the pattern you're looking at (1/2). The
   zoom is at the bottom (32/R = 32 steps a row).
 
-**Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which gets a box.
+**Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),
 **FUNC + STOP** pastes it onto the track you're on, and **FUNC + PLAY** clears all its steps.
 **UP / DOWN** move between track numbers, and **RIGHT** goes back to step 1. **FUNC + NO** undoes.
 
 ![Tracks, the cursor on a track number](docs/screens/tracks-number.png)
-*The cursor on track 5's number, ready to copy, clear or paste the whole track.*
+*The cursor on track 1's number (it flashes), ready to copy, clear or paste the whole track.*
 
 ## 2. Pages: one track, all 64 steps
 

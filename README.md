@@ -21,7 +21,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | Action | Result |
 |---|---|
 | Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page. |
-| Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Panel →** back to Tracks. |
+| Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Split →** back to Tracks. |
 | **Arrows** | Move the cursor. |
 | **YES** | Put a note on the step (or open it if there's one already). |
 | **FUNC + PLAY** | Clear the step. |
@@ -43,7 +43,7 @@ Each view answers one question.
 | **Tracks** | *What's happening in my pattern?* All 8 tracks at once. |
 | **Pages** | *What is this one track doing over all 64 steps?* With the arranger on: *what plays next, and when?* |
 | **Pitch** | *What notes am I writing?* A piano roll of one track. |
-| **Panel** | *What exactly is on this step, or in this arrangement row?* Numbers next to the grid. Built with the arranger in mind. |
+| **Split** | *What exactly is on this step, or in this arrangement row?* Numbers next to the grid. Built with the arranger in mind. |
 
 ## 1. Tracks: the whole pattern
 
@@ -156,10 +156,10 @@ Moving around:
 - **Knob E** slides the keyboard up and down a semitone, and **FUNC + knob E** an octave.
 - **PATTERN + trig** and **BANK + trig** still pick patterns and banks as usual.
 
-## 4. Panel: the numbers, for the arranger
+## 4. Split: the numbers, for the arranger
 
-The grid with a panel of values on the left: the step's four notes, velocity and length, the track's
-name, the play clock and the patterns. It was designed as the arranger's companion:
+The screen split in two: the grid on the right, and on the left a column of values (the step's four
+notes, velocity and length, the track's name, the play clock and the patterns). It was designed as the arranger's companion:
 
 - **Arranger on**: the timeline, plus the arrangement controls. You can see and change the row
   playing, the pattern of this row and the next, mute the row, and save the arrangement (a SAVE
@@ -168,18 +168,18 @@ name, the play clock and the patterns. It was designed as the arranger's compani
 
 **Arranger off**
 
-![Panel view, arranger off](docs/screens/panel.png)
+![Split view, arranger off](docs/screens/panel.png)
 *The step's notes, velocity and length on the left, the 8 tracks on the right.*
 
 **Arranger on**
 
-![Panel view, arranger on](docs/screens/panel-arranger.png)
+![Split view, arranger on](docs/screens/panel-arranger.png)
 *ROW 00 is the row playing. M A03 is this row's mute and pattern; -- A01 is the next row's pattern
 (the -- becomes a countdown while playing). The timeline is on the right.*
 
-It follows the arranger: turn the arranger on or off and the Panel view switches with it.
+It follows the arranger: turn the arranger on or off and the Split view switches with it.
 
-In the panel: **UP / DOWN** pick a line, **LEFT / RIGHT** a value, and **LEVEL** changes it (as a
+In the values column: **UP / DOWN** pick a line, **LEFT / RIGHT** a value, and **LEVEL** changes it (as a
 parameter lock on that step). **NO** goes back to the grid.
 
 ## Pop-up windows
@@ -201,7 +201,7 @@ Press **encoder F** in any view to change how it's shown. Turning F does nothing
 | **Tracks** | Zoom: 16 ↔ 32 steps a row |
 | **Pages** | Zoom: 16 ↔ 32 steps a row |
 | **Pitch** | Next layout: ROLL 16 → ROLL 32 → KEYS 16 |
-| **Panel** (arranger on) | Zoom the timeline: 4 → 8 → 16 steps a row |
+| **Split** (arranger on) | Zoom the timeline: 4 → 8 → 16 steps a row |
 
 ---
 
@@ -235,7 +235,7 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 ### AUDIO
 
 Press **MIDI** alone (without MIXER) to see the 8 **audio** tracks instead. Tracks and Pages work
-there: you can see, add and clear trigs. Pitch and Panel are MIDI only.
+there: you can see, add and clear trigs. Pitch and Split are MIDI only.
 
 Showing the audio tracks puts the Octatrack itself in audio mode (press MIDI again to go back), so
 the hardware works on the audio track under the cursor as it normally would: the trig keys and their
@@ -245,7 +245,7 @@ do nothing here (they would change AMP settings you can't see).
 
 ### Track names
 
-Each MIDI track can have a 12-character name, per Part and bank. Set it on the name line in the Panel
+Each MIDI track can have a 12-character name, per Part and bank. Set it on the name line in the Split
 view. Hold **FUNC** for a keyboard of characters. Names are saved with the project.
 
 ---
@@ -259,8 +259,8 @@ you left it, and so you can see or reset them.
 
 | Setting | What it means |
 |---|---|
-| **FULL** | Which kind of view you were in: 1 = Tracks, Pages or Pitch; 0 = Panel. |
-| **PAGES** | 0 = Tracks, 1 = Pages. (The Panel view ignores this and follows the arranger.) |
+| **FULL** | Which kind of view you were in: 1 = Tracks, Pages or Pitch; 0 = Split. |
+| **PAGES** | 0 = Tracks, 1 = Pages. (The Split view ignores this and follows the arranger.) |
 | **PITCH** | 1 = you were in the Pitch view. |
 | **LAYOUT** | The Pitch layout: ROLL 16, ROLL 32 or KEYS 16. |
 | **RANGE** | The lowest note the Pitch view shows (45 = A2). The view shows two octaves from here. |
@@ -268,9 +268,9 @@ you left it, and so you can see or reset them.
 | **ROLL16 BASE** | ROLL 16 shows 11 of those notes at a time; this is which one is at the bottom. |
 | **TRIG ROOT** | The lowest note of the trig-key keyboard. -1 = start from the C below the cursor. |
 | **FULL ZOOM** | Steps per row in Tracks and Pages: 2 = 16, 3 = 32. |
-| **ZOOM** | Steps per row in the Panel view's timeline: 0 = 4, 1 = 8, 2 = 16. |
+| **ZOOM** | Steps per row in the Split view's timeline: 0 = 4, 1 = 8, 2 = 16. |
 
-MIXER + MIDI always opens Tracks, Pages or Pitch, whichever you used last. The Panel view is one press
+MIXER + MIDI always opens Tracks, Pages or Pitch, whichever you used last. The Split view is one press
 of the combo further on.
 
 ---
@@ -283,7 +283,7 @@ it.
 - **MIXER + MIDI to get in.** The Octatrack has no spare page key. STEP VIEW draws on top of the MIDI
   ARP page but only while it's open, so the arpeggiator stays fully usable. MIXER + MIDI works from
   any page and doesn't take a key away from anything.
-- **The same combo to switch views.** One gesture to remember. The cost is that the Panel view is
+- **The same combo to switch views.** One gesture to remember. The cost is that the Split view is
   four presses away.
 - **NO to go back.** Everywhere else on the Octatrack NO means "back" or "cancel", so it does here
   too: it closes what's open, and from the grid it leaves.
@@ -294,8 +294,8 @@ it.
   the screen.
 - **The track number for whole-track actions.** The number is already the track's label, so putting
   the cursor on it means "this whole track", the same way the cursor on a step means "this step".
-- **The Panel view for the arranger.** The arranger is the part of the Octatrack that's hardest to
-  see. The Panel view puts the arrangement's timeline next to the numbers you need to edit it.
+- **The Split view for the arranger.** The arranger is the part of the Octatrack that's hardest to
+  see. The Split view puts the arrangement's timeline next to the numbers you need to edit it.
 - **Nothing outside STEP VIEW changes**, apart from these:
   - **MIXER** opens its window when you let go, not when you press it, so that MIXER + MIDI can work.
   - **FUNC + BANK** twice with the arranger on opens the arrangement editor.
@@ -304,7 +304,7 @@ it.
   - Copying a track in grid recording can convert between audio and MIDI tracks.
 
 Ideas being considered: a single VIEW setting in place of FULL / PAGES / PITCH, and a quicker way into
-the Panel view.
+the Split view.
 
 ---
 

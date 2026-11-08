@@ -1573,7 +1573,14 @@ sg_lvlh:
 | The LEVEL encoder (enc, delta) (stock 0x4004eb24): in the panel the value picked changes (a lock);
 | in the grid the cursor's step scrolls 1-64; with FUNC the page changes.
 sg_lvl:
-        bsr     sg_free
+        tst.l   sg_swp                  | (knob A in ROLL 32: LEVEL's own work, build 148)
+        bne.s   .Llv_w
+        bsr     sg_pl32                 | ROLL 32: LEVEL turns the cursor's note, as knob A elsewhere
+        beq.s   .Llv_0
+        move.l  8(%sp),%d1
+        bra     sg_pka
+.Llv_w: clr.l   sg_swp
+.Llv_0: bsr     sg_free
         bne     8f
         tst.l   sg_win                  | our window up: its PAGES (build 82)
         bne     sg_wlvl
@@ -1620,7 +1627,7 @@ sg_lvl:
         bra 3f
 0:      move.l  %d1,%d0
         bsr     sg_tmvn
-        bra.s   3f
+        bra     3f
 5:      tst.l   sg_mode                 | the grid: a run of steps marked from the cursor, the cursor its
         bne.s   6f                      | other end, 1-64 (build 82: pages before, still in the panel)
         tst.l   sg_sela
@@ -6721,7 +6728,7 @@ sg_kenc:
         tst.l   sg_pv
         beq     8f
         tst.l   sg_mode
-        beq     sg_pka
+        beq     sg_pkaa
         bra     8f
 0:
         moveq   #3,%d0                  | D: the full timeline's row pitch (build 107)
@@ -9669,6 +9676,34 @@ sg_pkeys:
 
 | Knob A in the pitch view (build 133; from sg_kenc, d1 the delta): the cursor a semitone that way (as
 | UP / DOWN in the rolls, LEFT / RIGHT in KEYS 16: sg_pmv), with FUNC the range an octave.
+| Knob A in the pitch view (sg_kenc's frame): ROLL 32 the steps, as LEVEL elsewhere (sg_lvl with
+| sg_swp; build 148, Zach: LEVEL and A swapped there); else sg_pka.
+sg_pkaa:
+        moveq   #1,%d0
+        cmp.l   sg_plo,%d0
+        bne.s   sg_pka
+        move.l  %d0,sg_swp
+        bra     sg_lvl
+
+| Z clear when ROLL 32's grid takes LEVEL and knob A swapped: the pitch view in layout 1, no panel, no
+| window or menu (build 148). Uses d0 d1 a0.
+sg_pl32:
+        bsr     sg_free
+        bne.s   8f
+        tst.l   sg_pv
+        beq.s   8f
+        tst.l   sg_win
+        bne.s   8f
+        tst.l   sg_mode
+        bne.s   8f
+        moveq   #1,%d0
+        cmp.l   sg_plo,%d0
+        bne.s   8f
+        moveq   #1,%d0
+        rts
+8:      moveq   #0,%d0
+        rts
+
 sg_pka:
         tst.l   SG_HELD+0x2d*24
         beq.s   1f
@@ -10003,7 +10038,7 @@ sg_pd0:
 3:      moveq   #10,%d1
         cmp.l   %d1,%d3
         bgt     .Lp0e
-        move.l  %d0,-(%sp)              | d0 > the row: above it -> up
+.Lp0a:  move.l  %d0,-(%sp)              | d0 > the row: above it -> up
         move.l  %d3,%d0
         bsr     sg_ptop
         move.l  (%sp)+,%d0
@@ -10034,17 +10069,11 @@ sg_pd0:
         cmp.l   %d0,%d3
         blt.s   5b
         bra     .Lp0ch
-.Lp0e:  tst.l   %d0                     | the 12th letter: a mark under the title or at the foot
-        bmi.s   6f
-        move.l  %d2,%d0
-        addq.l  #2,%d0
-        moveq   #7,%d1
-        bsr     sg_xp
-        bra     .Lp0ch
-6:      move.l  %d2,%d0
-        addq.l  #2,%d0
-        moveq   #63,%d1
-        bsr     sg_xp
+.Lp0e:  moveq   #10,%d3                 | the 12th letter (none of the 11 rows its letter): the arrow on
+        tst.l   %d0                     | the edge row on its side, the top row up, the bottom row down
+        bpl     .Lp0a                   | (build 148, Zach: a pixel under the title or at the foot until
+        moveq   #0,%d3                  | 147, which read as nothing)
+        bra     .Lp0a
 .Lp0ch: moveq   #3,%d3                  | NOT2-4: a 3 x 3 block in the square's middle on its row
 1:      move.l  %d3,%d0
         bsr     sg_pcn
@@ -13004,6 +13033,7 @@ sg_ctl:  .long 0
 sg_cts:  .long 0
 sg_fkx:  .long 0                        | 1: sg_kenc called by encoder F's press (sg_fkp)
 sg_fksv: .long 0                        | encoder F's stock press handler
+sg_swp:  .long 0                        | 1: sg_lvl reached from knob A in ROLL 32 (build 148)
 sg_vwch: .long 0                        | sg_vwin changed the panel view's window: draw (build 141)
 sg_nconf: .long 0                       | NO asked to clear (build 91; sg_nask)
 sg_ncs: .long   0                       | the step it asked for

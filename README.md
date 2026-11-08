@@ -129,16 +129,17 @@ doesn't change this view.
 How to read it:
 
 - **Squares** are notes, and the box is the cursor.
-- A small arrow means a note that's **above or below** what's on screen.
+- A small arrow means a note that's **above or below** what's on screen. It sits on the row with the
+  same letter, or on the top or bottom row when that letter has no row on screen.
 - Dotted rows are the sharps.
 - The title shows the cursor's note and step (F3 S01).
 
 Moving around:
 
-- **Up and down in pitch**: the arrows along the keyboard, or **knob A**. Go past the edge and the
+- **Up and down in pitch**: the arrows along the keyboard, or **knob A** (in ROLL 32: **LEVEL**). Go past the edge and the
   range scrolls.
 - **FUNC +** those moves by an octave.
-- **Along the steps**: the other two arrows, or **LEVEL**.
+- **Along the steps**: the other two arrows, or **LEVEL** (in ROLL 32: **knob A**).
 - **To another page**: FUNC + those arrows, or the **SCALE / PAGE** key.
 - **To the lowest / highest note on the page**: press **encoder A / C**.
 

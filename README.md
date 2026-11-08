@@ -49,6 +49,8 @@ Each view answers one question.
 
 All 8 MIDI tracks, one row each. Use it to place trigs quickly and see what every track is doing.
 
+**Arranger off**
+
 ![Tracks, 32 steps a row](docs/screens/tracks-32.png)
 *32 steps a row (the default).*
 
@@ -57,6 +59,12 @@ All 8 MIDI tracks, one row each. Use it to place trigs quickly and see what ever
 
 ![Tracks while playing](docs/screens/tracks-playing.png)
 *Playing: the play position is marked on every track.*
+
+**Arranger on**
+
+![Tracks, arranger on](docs/screens/tracks-arranger.png)
+*The same grid, with the arrangement row (R00) at the top right. While playing, the title also counts
+down the bars to the next row.*
 
 How to read it:
 
@@ -72,6 +80,8 @@ How to read it:
 
 The cursor's track, its four pages stacked. Use it to see a whole long track at once.
 
+**Arranger off**
+
 ![Pages, 32 steps a row](docs/screens/pages-32.png)
 *32 steps a row: two pages per row.*
 
@@ -80,6 +90,13 @@ The cursor's track, its four pages stacked. Use it to see a whole long track at 
 
 - The bar under the title shows the pattern (A03) and the track's length (64).
 - **Knob D** changes the spacing between the rows.
+
+**Arranger on: the timeline**
+
+![Pages, arranger on: the timeline](docs/screens/pages-arranger.png)
+*The timeline. The inverted line is an arrangement row's settings: R00 (row 0), A03 (its pattern), X2
+(played twice), 00:00 (offset and length; 0 = the pattern's length), S-/- (no scenes). Under it, that
+row's pages for the cursor's track, in the order they play.*
 
 **With the arranger on, Pages becomes the timeline.** Your arrangement is laid out in the order it
 plays, one page per row, for the cursor's track. Each arrangement row starts with a line of its
@@ -90,7 +107,8 @@ before the next row.
 ## 3. Pitch: a piano roll
 
 The cursor's track as notes on a keyboard, for writing melodies and bass lines. **Press encoder F** to
-switch between three layouts. They all show the same notes and keep the same range.
+switch between three layouts. They all show the same notes and keep the same range. The arranger
+doesn't change this view.
 
 ![Pitch, ROLL 16](docs/screens/pitch-roll16.png)
 *ROLL 16: one page of 16 steps, a keyboard on the left. Press encoder F for the next layout.*
@@ -134,8 +152,16 @@ name, the play clock and the patterns. It was designed as the arranger's compani
   button appears when there are changes).
 - **Arranger off**: the 8 tracks, plus the step's details and the track names.
 
+**Arranger off**
+
 ![Panel view, arranger off](docs/screens/panel.png)
-*The Panel view with the arranger off: the step's notes, velocity and length on the left, the 8 tracks on the right.*
+*The step's notes, velocity and length on the left, the 8 tracks on the right.*
+
+**Arranger on**
+
+![Panel view, arranger on](docs/screens/panel-arranger.png)
+*ROW 00 is the row playing. M A03 is this row's mute and pattern; -- A01 is the next row's pattern
+(the -- becomes a countdown while playing). The timeline is on the right.*
 
 It follows the arranger: turn the arranger on or off and the Panel view switches with it.
 

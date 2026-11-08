@@ -211,6 +211,6 @@ feature has been tested on hardware. Back up your card before flashing anything.
 
 ## Licence and credit
 
-MIT (see `LICENSE`): use it, change it and ship it, keeping the notice. Written by Zach Dimmick. It
+MIT (see `LICENSE`): use it, change it and ship it, keeping the notice. Written by Slingdinger. It
 builds inside [octabam](https://github.com/sambanks/octabam) by Sam Banks and contributors, which has
 its own terms.

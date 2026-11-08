@@ -18,7 +18,7 @@ Octatrack OS (1.40C, MKI and MKII).
 
 ## Quick start
 
-| Do this | What happens |
+| Action | Result |
 |---|---|
 | Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page. |
 | Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Panel →** back to Tracks. |

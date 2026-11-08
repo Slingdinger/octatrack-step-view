@@ -205,7 +205,8 @@ sg_poll:
         addq.l  #4,%sp
         clr.l   0x460ba98c              | and the trig keys' LEDs (ids 0-31, both colours) off: they
         clr.l   0x460ba9ae              | would show the MIDI track (build 119)
-0:      bsr     sg_drest                | the MIDI activity dots: the page's pixels back (build 71)
+0:      bsr     sg_vwin                 | the panel view's window: the arranger's (build 141)
+        bsr     sg_drest                | the MIDI activity dots: the page's pixels back (build 71)
         addq.l  #1,sg_bk                | the cursor's blink
         bsr     sg_flash                | its bits 4 and 5 from the tempo (build 126)
         tst.l   sg_nconf                | NO's question: gone with the cursor moved (build 91)
@@ -247,7 +248,8 @@ sg_poll:
         move.l  sg_hk,%d0
         bra     sg_mv                   | moves and draws
 1:      clr.l   sg_hk
-2:      moveq   #0,%d1                  | draw if it changed
+2:      move.l  sg_vwch,%d1             | draw if it changed (or the panel view's window did, sg_vwin)
+        clr.l   sg_vwch
         bra     sg_run
 9:      rts
 
@@ -736,67 +738,112 @@ sg_pgset:
 9:      rts
 
 | Detour 0x40032280 (6 bytes: `moveal 0x400cfeda,%a1`), the setup-window dispatch's MIDI page 2 --
-| FUNC + the ARP page key, which opens nothing since STEP VIEW. On the ARP page it switches the
-| window: the 8 MIDI tracks at one page, or the cursor's track at all 4 pages. Returns as the
-| dispatch did (it is tail-called, no frame).
+| FUNC + the ARP page key: the stock's (ARP SETUP). In MIXER + MIDI's view FUNC + ARP does nothing
+| (sg_kfarp) and never reaches it (build 141).
 sg_vtog:
-        bsr     sg_here
-        bne.s   9f
+        movea.l 0x400cfeda,%a1          | displaced
+        jmp     0x40032286
+
+| The combo in the view (build 141): TRKS -> PAGES -> PITCH -> the panel view -> TRKS; in AUDIO
+| TRKS -> PAGES -> TRKS (no pitch view, no panel). The panel view's window is the arranger's (sg_vwset).
 sg_vflip:
-        tst.l   sg_full                 | the full view: TRKS -> PAGES -> PITCH -> TRKS (build 109)
-        beq.s   5f
-        tst.l   sg_pv
-        beq.s   1f
-        clr.l   sg_pv
+        tst.l   sg_full
+        bne.s   .Lvf_f
+        moveq   #1,%d0                  | the panel view -> TRKS
+        move.l  %d0,sg_full
         clr.l   sg_view
-        bra.s   6f
-1:      tst.l   sg_view
-        beq.s   5f
-        tst.l   sg_aud                  | (MIDI only: in AUDIO back to TRKS, build 110)
-        beq.s   2f
-        clr.l   sg_view
-        bra.s   6f
-2:      moveq   #1,%d0
+        bra.s   .Lvf_z
+.Lvf_f: tst.l   sg_pv
+        beq.s   .Lvf_t
+        clr.l   sg_pv                   | PITCH -> the panel view
+        clr.l   sg_full
+        bsr     sg_vwset
+        bra.s   .Lvf_z
+.Lvf_t: tst.l   sg_view
+        bne.s   .Lvf_p
+        moveq   #1,%d0                  | TRKS -> PAGES
+        move.l  %d0,sg_view
+        bra.s   .Lvf_n
+.Lvf_p: tst.l   sg_aud
+        beq.s   .Lvf_h
+        clr.l   sg_view                 | AUDIO: PAGES -> TRKS
+        bra.s   .Lvf_n
+.Lvf_h: moveq   #1,%d0                  | PAGES -> PITCH
         move.l  %d0,sg_pv
         clr.l   sg_mode
         bsr     sg_pini
-        bra.s   6f
-5:      moveq   #1,%d0
-        eor.l   %d0,sg_view
-6:      clr.l   sg_idle
+        bra.s   .Lvf_n
+.Lvf_z: clr.l   sg_mode
+        moveq   #-1,%d0
+        move.l  %d0,sg_zlst
+        bsr     sg_zset
+        tst.l   sg_nlay
+        beq.s   .Lvf_n
+        bsr     sg_tupd
+.Lvf_n: clr.l   sg_idle
         clr.l   sg_bk
         bra     sg_now
-9:      movea.l 0x400cfeda,%a1          | displaced: the stock's (ARP SETUP's window, build 140)
-        jmp     0x40032286
+
+| The panel view's window: the timeline with the arranger on, the 8 tracks with it off (build 141).
+| Uses d0.
+sg_vwset:
+        moveq   #0,%d0
+        tst.l   0x460d1aec
+        beq.s   1f
+        moveq   #1,%d0
+1:      move.l  %d0,sg_view
+        rts
+
+| Each tick: the panel view's window follows the arranger turned on or off (build 141). Uses d0 d1.
+sg_vwin:
+        tst.l   sg_full
+        bne.s   9f
+        tst.l   sg_aud
+        bne.s   9f
+        move.l  sg_view,%d1
+        bsr     sg_vwset
+        cmp.l   sg_view,%d1
+        beq.s   9f
+        moveq   #-1,%d0
+        move.l  %d0,sg_zlst
+        bsr     sg_zset
+        tst.l   sg_nlay
+        beq.s   1f
+        bsr     sg_tupd
+1:      moveq   #1,%d0
+        move.l  %d0,sg_vwch
+9:      rts
+
+| Out of MIXER + MIDI's view by NO in the grid (build 141): as a page key leaves it, then the page
+| drawn -- the one the view was opened from, or the ARP page by its key when it was opened there
+| (sg_omp -1; the stock's page now). Uses everything but a5 a6.
+sg_nout:
+        move.l  sg_omp,%d7
+        bsr     sg_mxout
+        tst.l   %d7
+        bpl.s   9f
+        moveq   #-1,%d0
+        move.l  %d0,0x400c0aac
+        pea     1.w
+        pea     0x23.w
+        jsr     0x4005578c
+        addq.l  #8,%sp
+9:      rts
 
 | Detour 0x4005578c (8 bytes: `movel %d3,%sp@-` ; `movel %d2,%sp@-` ; `moveal %sp@(12),%a1`), the
-| page keys' handler (code, edge; PANEL.md): the ARP page's key pressed on the ARP page itself, no
-| FUNC and no window open, switches the window as FUNC + the key does (build 75); else the stock's.
+| page keys' handler (code, edge; PANEL.md): in MIXER + MIDI's view a page key's press, ARP's too
+| (build 141), leaves the view first -- the MIDI side's page and audio mode back -- then the stock's.
 sg_pkey:
-        tst.l   sg_own                  | MIXER + MIDI's view, another page key pressed (build 112): out
-        beq.s   0f                      | of it first -- the MIDI side's page and audio mode back, as the
-        moveq   #0x23,%d0               | combo did in 108-111 -- then the key's own page there
-        cmp.l   4(%sp),%d0
-        beq.s   0f
+        tst.l   sg_own
+        beq.s   8f
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
-        bne.s   0f
+        bne.s   8f
         lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
         bsr     sg_mxout
         movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
-0:      moveq   #0x23,%d0
-        cmp.l   4(%sp),%d0
-        bne.s   8f
-        moveq   #1,%d0
-        cmp.l   8(%sp),%d0
-        bne.s   8f                      | a press only (the release goes on as ever)
-        tst.l   SG_HELD+0x2d*24
-        bne.s   8f
-        bsr     sg_free                 | (also: on the ARP page)
-        bne.s   8f
-        bra     sg_vflip                | (build 111: a second press no longer opens the arranger's editor)
 8:      move.l  %d3,-(%sp)              | displaced
         move.l  %d2,-(%sp)              | displaced
         movea.l 12(%sp),%a1             | displaced
@@ -1452,27 +1499,17 @@ sg_kno:                                 | NO (stock 0x4005e25c)
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne     7f
-        tst.l   sg_mode                 | in the grid: "CLEAR? YES" for 5 s, YES there deletes the step
-        bne.s   1f                      | (sg_ndel; build 91, at once in 90), NO again or a move cancels
-        bsr     sg_trd                  | (a readout row: nothing, build 98)
-        bne.s   7f
-        clr.l   sg_idle
-        bsr     sg_nask
-        beq.s   2f
-        clr.l   sg_nconf                | asked: cancelled
-        clr.l   sg_umt
-        bra     sg_now
-2:      moveq   #1,%d0
-        move.l  %d0,sg_nconf
-        move.l  sg_step,%d0
-        move.l  %d0,sg_ncs
-        move.l  sg_cpat,%d0
-        move.l  %d0,sg_ncp
-        lea     sg_fnq,%a0
-        bsr     sg_cmsg0
-        move.l  #300,%d0
-        move.l  %d0,sg_umt
-        bra     sg_now
+        tst.l   sg_mode                 | in the grid: out of MIXER + MIDI's view (build 141; deleting a
+        bne.s   1f                      | step is FUNC + PLAY's now); in the panel: back to the grid
+        clr.l   sg_nconf
+        tst.l   sg_own
+        beq.s   7f
+        lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        bsr     sg_nout
+        movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        rts
 1:      clr.l   sg_mode
         clr.l   sg_idle
         bsr     sg_now
@@ -5919,9 +5956,15 @@ sg_kcop:
         moveq   #1,%d1
         cmp.l   8(%sp),%d1
         bne     9f
-        tst.l   sg_aud                  | (not in AUDIO, build 110)
+        tst.l   sg_aud                  | AUDIO: CLEAR the cursor's step only (build 141), COPY / PASTE
+        beq.s   .Lkc_m                  | nothing (build 110)
+        moveq   #1,%d1
+        cmp.l   %d1,%d0
         bne     9f
-        lea     -40(%sp),%sp
+        clr.l   sg_idle
+        bsr     sg_ndel
+        bra     sg_now
+.Lkc_m: lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
         clr.l   sg_idle
         move.l  %d0,%d6
@@ -5977,7 +6020,13 @@ sg_kcop:
         moveq   #-1,%d3
         bsr     sg_cop
         bra.s   3f
-2:      moveq   #1,%d0                  | else the window: COPY 1, CLEAR 2, PAGES picked, all four on
+2:      moveq   #1,%d0                  | CLEAR without a run: the cursor's step (build 141)
+        cmp.l   %d0,%d6
+        bne.s   4f
+        moveq   #0,%d3
+        bsr     sg_cop
+        bra.s   3f
+4:      moveq   #1,%d0                  | else the window: COPY 1, PAGES picked, all four on
         add.l   %d6,%d0
         move.l  %d0,sg_win
         moveq   #2,%d0
@@ -8718,9 +8767,9 @@ sg_aclamp:                              | d0 kept to 0..d1
 sg_kmidi:
         move.l  8(%sp),%d0
         tst.l   sg_mxk                  | the combo's own repeat / release: on the release its work, as
-        beq.s   1f                      | the stock's MIDI key switches on its release (0x40055714; the
+        beq     1f                      | the stock's MIDI key switches on its release (0x40055714; the
         tst.l   %d0                     | switch called on the press hung the unit under the port)
-        bne.s   9f
+        bne     9f
         clr.l   sg_mxk
         tst.l   sg_mxa                  | MIDI alone in the view: AUDIO on / off
         beq.s   0f
@@ -8731,7 +8780,17 @@ sg_kmidi:
         bsr     sg_mled                 | (AUDIO off: the LED back, build 116)
 .Lkm_a: clr.l   sg_pv
         clr.l   sg_mode
-        bsr     sg_alab
+        tst.l   sg_aud                  | (AUDIO from the panel view: TRKS -- no panel in AUDIO, build 141)
+        beq.s   .Lkm_b
+        tst.l   sg_full
+        bne.s   .Lkm_b
+        moveq   #1,%d0
+        move.l  %d0,sg_full
+        clr.l   sg_view
+        moveq   #-1,%d0
+        move.l  %d0,sg_zlst
+        bsr     sg_zset
+.Lkm_b: bsr     sg_alab
         bra     sg_now
 0:
         lea     -40(%sp),%sp
@@ -8814,7 +8873,9 @@ sg_mxin:
         move.l  %d0,sg_ownw
         moveq   #1,%d0
         move.l  %d0,sg_own
-        move.l  %d0,sg_full
+        move.l  %d0,sg_on               | the view's page drawn: leaving it runs sg_rest (build 141; the
+        move.l  %d0,sg_pnew             | page key's draw came before sg_own, so it never did -- the view
+        move.l  %d0,sg_full             | stayed on the stock's page in the tempo's corner)
         clr.l   sg_mode
         clr.l   sg_win
         clr.l   sg_idle
@@ -11884,32 +11945,12 @@ sg_ptitle:
         moveq   #6,%d3
         bra     sg_pf
 
-| FUNC + ARP (code, state). Uses d0 d1 a0.
+| FUNC + ARP (code, state): nothing in MIXER + MIDI's view (build 141: the combo picks the views); else
+| the stock's (ARP SETUP). Uses d0 d1 a0.
 sg_kfarp:
         bsr     sg_keyfn
         bne.s   8f
-        tst.l   sg_kb
-        bne.s   8f
-        tst.l   sg_win
-        bne.s   7f
-        moveq   #1,%d0
-        cmp.l   8(%sp),%d0
-        bne.s   7f
-        move.l  sg_full,%d0
-        eori.l  #1,%d0
-        move.l  %d0,sg_full
-        clr.l   sg_pv                   | (the pitch view is the full view's, build 109)
-        bsr     sg_aoff                 | (AUDIO too, build 110)
-        clr.l   sg_mode
-        clr.l   sg_idle
-        moveq   #-1,%d0
-        move.l  %d0,sg_zlst
-        bsr     sg_zset
-        tst.l   sg_nlay
-        beq.s   1f
-        bsr     sg_tupd
-1:      bra     sg_now
-7:      rts
+        rts
 8:      jmp     0x400322f0
 
 | The full view's title row, rows 1-7. Uses d0 d1 a0 a1.
@@ -12732,6 +12773,7 @@ sg_fpc: .long   -1                      | the full view's play column, the row's
 sg_tpo: .long   0                       | the page playing's place in the timeline's first screen row (93)
 sg_half: .long  0                       | 1: drawing a track's second line (build 93)
 sg_gx:  .long   SG_GX                   | the grid's first column (sg_zset)
+sg_vwch: .long 0                        | sg_vwin changed the panel view's window: draw (build 141)
 sg_nconf: .long 0                       | NO asked to clear (build 91; sg_nask)
 sg_ncs: .long   0                       | the step it asked for
 sg_ncp: .long   0                       | and its pattern (sg_cpat)

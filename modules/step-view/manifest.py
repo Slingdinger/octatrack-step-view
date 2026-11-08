@@ -70,10 +70,10 @@ MODULE = Module(
         Detour(0x4003722c, H("2f0a42a74878002a"), "stepview", "sg_trn",
                "the transport icon's drawer: returns on the MIDI ARP page", pad_to=8),
         Detour(0x4005578c, H("2f032f02226f000c"), "stepview", "sg_pkey",
-               "the page keys' handler: the ARP page's key on the ARP page switches the step editor's window", pad_to=8),
+               "the page keys' handler: in MIXER + MIDI's view any page key, ARP's too, leaves the view first", pad_to=8),
         Detour(0x40032280, H("2279400cfeda"), "stepview", "sg_vtog",
-               "FUNC + the ARP page key (the setup-window dispatch's MIDI page 2): in MIXER + MIDI's view the "
-               "step editor's window, else ARP SETUP (the stock's)", pad_to=6),
+               "FUNC + the ARP page key (the setup-window dispatch's MIDI page 2): the stock's ARP SETUP; "
+               "never reached in MIXER + MIDI's view (sg_kfarp does nothing there)", pad_to=6),
     ),
     symbol_refs=(
         SymbolRef(0x40061ed6, 0x400373dc, "stepview", "sg_beat",
@@ -144,8 +144,8 @@ MODULE = Module(
         SymbolRef(0x400bf058, 0x40056b2c, "stepview", "sg_kptrig", "PATTERN layer, trig 14 press: the pattern picked in the step editor's scale window"),
         SymbolRef(0x400bf072, 0x40056b2c, "stepview", "sg_kptrig", "PATTERN layer, trig 15 press: the pattern picked in the step editor's scale window"),
         SymbolRef(0x400bf08c, 0x40056b2c, "stepview", "sg_kptrig", "PATTERN layer, trig 16 press: the pattern picked in the step editor's scale window"),
-        SymbolRef(0x400bf3a0, 0x400322f0, "stepview", "sg_kfarp", "MKI keymap, FUNC sub-map ARP press: the step editor's full view on the MIDI ARP page"),
-        SymbolRef(0x400bf714, 0x400322f0, "stepview", "sg_kfarp", "MKII keymap, FUNC sub-map ARP press: the step editor's full view on the MIDI ARP page"),
+        SymbolRef(0x400bf3a0, 0x400322f0, "stepview", "sg_kfarp", "MKI keymap, FUNC sub-map ARP press: nothing in MIXER + MIDI's view"),
+        SymbolRef(0x400bf714, 0x400322f0, "stepview", "sg_kfarp", "MKII keymap, FUNC sub-map ARP press: nothing in MIXER + MIDI's view"),
         SymbolRef(0x400c0140, 0x4007d468, "stepview", "sg_kmix", "MKI keymap, MIXER press: nothing until the release"),
         SymbolRef(0x400c0144, 0x4007d320, "stepview", "sg_kmix", "MKI keymap, MIXER release: the window opens / closes then, not after MIXER + MIDI"),
         SymbolRef(0x400c0724, 0x4007d468, "stepview", "sg_kmix", "MKII keymap, MIXER press"),

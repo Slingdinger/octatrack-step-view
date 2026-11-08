@@ -34,7 +34,7 @@ Leaving takes you back to the page you were on, in the mode you were in (MIDI or
 
 ---
 
-## The four views
+## The four views at a glance
 
 Each view answers one question.
 
@@ -45,18 +45,21 @@ Each view answers one question.
 | **Pitch** | *What notes am I writing?* A piano roll of one track. |
 | **Panel** | *What exactly is on this step, or in this arrangement row?* Numbers next to the grid. Built with the arranger in mind. |
 
-### Tracks: the whole pattern
+## 1. Tracks: the whole pattern
 
 All 8 MIDI tracks, one row each. Use it to place trigs quickly and see what every track is doing.
 
-| | |
-|---|---|
-| ![Tracks, 32 steps a row](docs/screens/tracks-32.png) | ![Tracks, 16 steps a row](docs/screens/tracks-16.png) |
-| **32 steps a row** (the default) | **16 steps a row**: turn **knob F** left |
-| ![Tracks while playing](docs/screens/tracks-playing.png) | |
-| **Playing**: the column under the play position is marked on every track | |
+![Tracks, 32 steps a row](docs/screens/tracks-32.png)
+*32 steps a row (the default).*
+
+![Tracks, 16 steps a row](docs/screens/tracks-16.png)
+*16 steps a row: turn knob F left.*
+
+![Tracks while playing](docs/screens/tracks-playing.png)
+*Playing: the play position is marked on every track.*
 
 How to read it:
+
 - **Tall bar** = a note. **Short bar** = a trigless trig. **Line** = an empty step.
 - **Blank** = past the end of that track (tracks can be different lengths).
 - A track shorter than the row repeats to fill it, so a 16-step track shows twice at 32 a row.
@@ -65,14 +68,15 @@ How to read it:
 - At the right: the cursor's step (S01) and which part of the pattern you're looking at (1/2). The
   zoom is at the bottom (32/R = 32 steps a row).
 
-### Pages: one track, all 64 steps
+## 2. Pages: one track, all 64 steps
 
 The cursor's track, its four pages stacked. Use it to see a whole long track at once.
 
-| | |
-|---|---|
-| ![Pages, 32 steps a row](docs/screens/pages-32.png) | ![Pages, 16 steps a row](docs/screens/pages-16.png) |
-| **32 steps a row**: two pages a row | **16 steps a row**: one page a row. Turn **knob F** to switch |
+![Pages, 32 steps a row](docs/screens/pages-32.png)
+*32 steps a row: two pages per row.*
+
+![Pages, 16 steps a row](docs/screens/pages-16.png)
+*16 steps a row: one page per row. Turn knob F to switch.*
 
 - The bar under the title shows the pattern (A03) and the track's length (64).
 - **Knob D** changes the spacing between the rows.
@@ -83,25 +87,29 @@ settings: row number, pattern, repetitions, offset and length, scenes, mute. You
 settings right there: **LEFT / RIGHT** pick one, **LEVEL** changes it. A countdown shows the bars left
 before the next row.
 
-### Pitch: a piano roll
+## 3. Pitch: a piano roll
 
 The cursor's track as notes on a keyboard, for writing melodies and bass lines. **Press encoder F** to
 switch between three layouts. They all show the same notes and keep the same range.
 
-| | |
-|---|---|
-| ![Pitch, ROLL 16](docs/screens/pitch-roll16.png) | ![Pitch, ROLL 32](docs/screens/pitch-roll32.png) |
-| **ROLL 16**: one page of 16 steps, a keyboard on the left | **ROLL 32**: two pages across two octaves |
-| ![Pitch, KEYS 16](docs/screens/pitch-keys16.png) | |
-| **KEYS 16**: turned sideways, steps run down the screen over a keyboard | |
+![Pitch, ROLL 16](docs/screens/pitch-roll16.png)
+*ROLL 16: one page of 16 steps, a keyboard on the left. Press encoder F for the next layout.*
+
+![Pitch, ROLL 32](docs/screens/pitch-roll32.png)
+*ROLL 32: two pages across two octaves.*
+
+![Pitch, KEYS 16](docs/screens/pitch-keys16.png)
+*KEYS 16: turned sideways, steps run down the screen over a keyboard.*
 
 How to read it:
+
 - **Squares** are notes, and the box is the cursor.
 - A small arrow means a note that's **above or below** what's on screen.
 - Dotted rows are the sharps.
 - The title shows the cursor's note and step (F3 S01).
 
 Moving around:
+
 - **Up and down in pitch**: the arrows along the keyboard, or **knob A**. Go past the edge and the
   range scrolls.
 - **FUNC +** those moves by an octave.
@@ -110,12 +118,13 @@ Moving around:
 - **To the lowest / highest note on the page**: press **encoder A / C**.
 
 **The trig keys become a keyboard** in this view:
+
 - The 16 trig keys play 16 notes in a row, starting from C.
 - Press one to hear it. **FUNC + a trig key** writes that note into the cursor's step.
 - **Knob E** slides the keyboard up and down a semitone, and **FUNC + knob E** an octave.
 - **PATTERN + trig** and **BANK + trig** still pick patterns and banks as usual.
 
-### Panel: the numbers, for the arranger
+## 4. Panel: the numbers, for the arranger
 
 The grid with a panel of values on the left: the step's four notes, velocity and length, the track's
 name, the play clock and the patterns. It was designed as the arranger's companion:
@@ -126,18 +135,20 @@ name, the play clock and the patterns. It was designed as the arranger's compani
 - **Arranger off**: the 8 tracks, plus the step's details and the track names.
 
 ![Panel view, arranger off](docs/screens/panel.png)
+*The Panel view with the arranger off: the step's notes, velocity and length on the left, the 8 tracks on the right.*
 
 It follows the arranger: turn the arranger on or off and the Panel view switches with it.
 
 In the panel: **UP / DOWN** pick a line, **LEFT / RIGHT** a value, and **LEVEL** changes it (as a
 parameter lock on that step). **NO** goes back to the grid.
 
-### Windows
+## Pop-up windows
 
-| | |
-|---|---|
-| ![Step window](docs/screens/step-window.png) | ![Copy window](docs/screens/copy-window.png) |
-| **Step window**: one step big. **YES** on a note opens it, **LEVEL** and the arrows edit it, **NO** closes it. | **Copy window**: **FUNC + REC** with nothing marked. Copy one step (TRIG), a page (ROW) or chosen pages. |
+![Step window](docs/screens/step-window.png)
+*Step window: one step, big. YES on a note opens it, LEVEL and the arrows edit it, NO closes it.*
+
+![Copy window](docs/screens/copy-window.png)
+*Copy window: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW) or chosen pages.*
 
 ---
 

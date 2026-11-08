@@ -185,7 +185,8 @@ parameter lock on that step). **NO** goes back to the grid.
 ## Pop-up windows
 
 ![Step window](docs/screens/step-window.png)
-*Step window: one step, big. YES on a note opens it, LEVEL and the arrows edit it, NO closes it.*
+*Step window: one step, big. The four notes in a row, VEL and LEN under NOTE and NOT2, and LEN's subdivision
+(1/16, INF) under its value. YES on a note opens it, LEVEL and the arrows edit it, NO closes it.*
 
 ![Copy window](docs/screens/copy-window.png)
 *Copy window: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW) or chosen pages.*
@@ -195,6 +196,10 @@ parameter lock on that step). **NO** goes back to the grid.
 ## Encoder F: press it to change how the view looks
 
 Press **encoder F** in any view to change how it's shown. Turning F does nothing in STEP VIEW.
+
+While STEP VIEW is open, a knob it doesn't use does nothing, turned or pressed. The page under the view
+(the MIDI ARP page, or AMP in AUDIO) can't be changed unseen. With a trig key held, the knobs lock
+values on that step as usual.
 
 | View | Press F |
 |---|---|

@@ -197,6 +197,7 @@ sg_poll:
         beq     0f
         bsr     sg_ptoff                | (the pitch view's trig keys the stock's again, build 131)
         bsr     sg_fkout                | (encoder F's press the stock's again, build 143)
+        bsr     sg_ekout                | (A-E's presses the stock's again)
         tst.l   sg_own                  | the page left another way (a page key, MIDI): MIXER + MIDI's
         beq     9f                      | view is over, nothing put back (build 108) -- once the page
         tst.l   sg_ownw                 | the combo asked for has come (the page key's switch lands a
@@ -240,6 +241,7 @@ sg_poll:
         bsr     sg_thold
         bsr     sg_ptrg                 | the pitch view's trig keys and their LEDs (build 126)
         bsr     sg_fkin                 | encoder F's press ours (build 143)
+        bsr     sg_ekin                 | and A-E's: the hidden page's reset
         tst.l   sg_tnum                 | the track number: only in TRKS, on step 1 (build 143)
         beq.s   .Lpl_t
         bsr     sg_tnv
@@ -6718,10 +6720,10 @@ sg_kenc:
         moveq   #2,%d0                  | A B C in AUDIO (build 149): the page under the view is the audio
         cmp.l   4(%sp),%d0              | track's AMP page (audio mode), so only with a trig key down (a
         bcs.s   .Lke_f                  | lock, as the stock's), else nothing; B C in the MIDI views the
-        tst.l   sg_aud                  | stock's as before (they reach here since build 149)
-        bne.s   0f
+        tst.l   sg_aud                  | B C in the MIDI views: nothing (they were the stock's in 149 and
+        bne.s   0f                      | changed the hidden ARP page's LEG and MODE)
         tst.l   4(%sp)
-        bne     8f
+        bne     .Lke_eat
         bra.s   .Lke_f
 0:      bsr     sg_tkd
         bne     8f
@@ -6737,21 +6739,24 @@ sg_kenc:
         tst.l   sg_full                 | the full view: both windows (build 92)
         bne.s   0f
         tst.l   sg_view
-        beq     8f
+        beq     .Lke_eat
 0:      tst.l   sg_win
-        bne     8f
+        bne     .Lke_eat
         tst.l   sg_kb
-        bne     8f
+        bne     .Lke_eat
         clr.l   sg_idle
         move.l  8(%sp),%d1              | the delta
         tst.l   4(%sp)                  | A in the pitch view: the cursor's note (build 133); else the stock's
         bne.s   0f
         tst.l   sg_pv
-        beq     8f
+        beq     .Lke_eat
         tst.l   sg_mode
         beq     sg_pkaa
-        bra     8f
+        bra     .Lke_eat
 0:
+        moveq   #2,%d0                  | B and C: nothing in the view. Every knob A-F comes here while the
+        cmp.l   4(%sp),%d0              | view is up, and none falls through to the page underneath: the ARP
+        bge     .Lke_eat                | page's TRAN..NLEN changed unseen (8 Nov 2026, the port)
         moveq   #3,%d0                  | D: the full timeline's row pitch (build 107)
         cmp.l   4(%sp),%d0
         beq     .Lke_d
@@ -6813,16 +6818,18 @@ sg_kenc:
 4:      add.l   %d1,sg_zs
 6:      bra     sg_now
 7:      rts
-8:      jmp     0x40055008
+8:      jmp     0x40055008              | the view not up, or a stock window over it: the stock's knob
+.Lke_eat:
+        rts                             | the view is up: a knob it does not use does nothing
 .Lke_d: tst.l   sg_pv                   | the pitch view's ROLL 16: its window a semitone (build 129)
         beq.s   0f
         tst.l   sg_plo
         beq     sg_pscr
         bra     sg_prsc                 | ROLL 32, KEYS 16: the range a semitone (build 136)
 0:      tst.l   sg_full                 | only in the full view's PAGES: the timeline 7-17 px a row, fewer
-        beq     8b                      | rows the wider (sg_zset); the 4-page grid its rows 5 px apart up
+        beq     .Lke_eat                      | rows the wider (sg_zset); the 4-page grid its rows 5 px apart up
         tst.l   sg_view                 | to the screen's height (sg_fstr); "SPACE 7"
-        beq     8b
+        beq     .Lke_eat
         tst.l   sg_nlay
         bne.s   0f
         moveq   #1,%d0                  | the 4-page grid
@@ -7868,7 +7875,7 @@ sg_stdraw:
         bsr     sg_tx
         lea     sg_fln,%a1
         lea     SG_SMALL,%a0
-        moveq   #SG_SWX+44,%d0
+        moveq   #SG_SWX+28,%d0
         moveq   #SG_SY3,%d1
         moveq   #0,%d2
         bsr     sg_tx
@@ -7879,18 +7886,24 @@ sg_stdraw:
         moveq   #SG_SY4,%d1
         lea     sg_pvb,%a1
         bsr     sg_tx
-        pea     sg_plf                  | "58 -5/8"
-        move.l  sg_plv,-(%sp)
-        pea     sg_fds
+        move.l  sg_plv,-(%sp)           | "58", and its subdivision ("-5/8", "INF") on the line below
+        pea     sg_fdn
         pea     sg_b1
         jsr     SG_SPRINTF
-        lea     16(%sp),%sp
+        lea     12(%sp),%sp
         moveq   #SG_PN+5,%d0
         bsr     sg_hl
         lea     SG_BIG,%a0
-        moveq   #SG_SWX+44,%d0
+        moveq   #SG_SWX+28,%d0
         moveq   #SG_SY4,%d1
         lea     sg_b1,%a1
+        bsr     sg_tx
+        moveq   #SG_PN+5,%d0
+        bsr     sg_hl
+        lea     SG_BIG,%a0
+        moveq   #SG_SWX+28,%d0
+        moveq   #SG_SY4-9,%d1
+        lea     sg_plf,%a1
         bsr     sg_tx
         moveq   #1,%d0                  | the frame
         moveq   #1,%d1
@@ -10808,6 +10821,78 @@ sg_fkout:
         move.l  sg_fksv,(%a0)
 9:      rts
 
+| Encoders A-E pressed while the view is up (key codes 0x38-0x3c): nothing. The stock's press resets
+| the hidden page's parameter (the ARP page's TRAN and NLEN went back to their defaults, the port, 8 Nov
+| 2026). A menu, popup, window of ours or the name's keyboard: the stock's handler, as F's (sg_fkp).
+sg_ek0: suba.l  %a1,%a1
+        bra.s   sg_ekp
+sg_ek1: movea.w #1,%a1
+        bra.s   sg_ekp
+sg_ek2: movea.w #2,%a1
+        bra.s   sg_ekp
+sg_ek3: movea.w #3,%a1
+        bra.s   sg_ekp
+sg_ek4: movea.w #4,%a1
+sg_ekp:
+        move.l  %a1,-(%sp)
+        bsr     sg_free
+        movea.l (%sp)+,%a1
+        bne.s   8f
+        tst.l   sg_win
+        bne.s   8f
+        tst.l   sg_kb
+        bne.s   8f
+        move.l  %a1,-(%sp)              | a trig key down: the stock's (a held trig's lock, as the knobs')
+        bsr     sg_tkd
+        movea.l (%sp)+,%a1
+        bne.s   8f
+        rts
+8:      move.l  %a1,%d0
+        lsl.l   #2,%d0
+        lea     sg_eksv,%a0
+        movea.l (%a0,%d0.l),%a0
+        jmp     (%a0)
+
+| A-E's presses ours in the key table while the view is up (sg_poll; the stock's kept in sg_eksv), the
+| stock's back off it. Uses d0 d1 a0 a1.
+sg_ekin:
+        lea     0x46c7d8de+0x38*24,%a0  | A's entry; 24 bytes an entry
+        lea     sg_ekt,%a1
+        moveq   #0,%d0                  | the offset in sg_eksv
+1:      move.l  (%a0),%d1
+        cmp.l   (%a1),%d1
+        beq.s   2f                      | ours already
+        move.l  %a1,-(%sp)
+        lea     sg_eksv,%a1
+        move.l  %d1,(%a1,%d0.l)
+        movea.l (%sp)+,%a1
+        move.l  (%a1),(%a0)
+2:      addq.l  #4,%a1
+        lea     24(%a0),%a0
+        addq.l  #4,%d0
+        moveq   #20,%d1
+        cmp.l   %d1,%d0
+        blt.s   1b
+        rts
+sg_ekout:
+        lea     0x46c7d8de+0x38*24,%a0
+        lea     sg_ekt,%a1
+        moveq   #0,%d0
+1:      move.l  (%a0),%d1
+        cmp.l   (%a1),%d1
+        bne.s   2f                      | not ours
+        move.l  %a1,-(%sp)
+        lea     sg_eksv,%a1
+        move.l  (%a1,%d0.l),(%a0)
+        movea.l (%sp)+,%a1
+2:      addq.l  #4,%a1
+        lea     24(%a0),%a0
+        addq.l  #4,%d0
+        moveq   #20,%d1
+        cmp.l   %d1,%d0
+        blt.s   1b
+        rts
+
 | Z set in the full 8-track window (TRKS), where the cursor can sit on the track number (build 143).
 | Uses d0.
 sg_tnv:
@@ -12860,6 +12945,7 @@ sg_fh4: .asciz  "S%02d"                 | (its right column, build 100)
 sg_fh5: .asciz  "%d/%d"
 sg_fzz: .asciz  "%d/R"                  | (build 90; a Z read as a 2)
 sg_fds: .asciz  "%d %s"
+sg_fdn: .asciz  "%d"
 sg_fvl: .asciz  "VEL"
 sg_fln: .asciz  "LEN"
         .balign 4
@@ -13116,6 +13202,8 @@ sg_ctl:  .long 0
 sg_cts:  .long 0
 sg_fkx:  .long 0                        | 1: sg_kenc called by encoder F's press (sg_fkp)
 sg_fksv: .long 0                        | encoder F's stock press handler
+sg_eksv: .long 0, 0, 0, 0, 0            | encoders A-E's stock press handlers (sg_ekin)
+sg_ekt:  .long sg_ek0, sg_ek1, sg_ek2, sg_ek3, sg_ek4
 sg_swp:  .long 0                        | 1: sg_lvl reached from knob A in ROLL 32 (build 148)
 sg_vwch: .long 0                        | sg_vwin changed the panel view's window: draw (build 141)
 sg_nconf: .long 0                       | NO asked to clear (build 91; sg_nask)

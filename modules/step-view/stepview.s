@@ -196,6 +196,7 @@ sg_poll:
         bsr     sg_here
         beq     0f
         bsr     sg_ptoff                | (the pitch view's trig keys the stock's again, build 131)
+        bsr     sg_fkout                | (encoder F's press the stock's again, build 143)
         tst.l   sg_own                  | the page left another way (a page key, MIDI): MIXER + MIDI's
         beq     9f                      | view is over, nothing put back (build 108) -- once the page
         tst.l   sg_ownw                 | the combo asked for has come (the page key's switch lands a
@@ -242,6 +243,15 @@ sg_poll:
         bsr     sg_kpage
         bsr     sg_thold
         bsr     sg_ptrg                 | the pitch view's trig keys and their LEDs (build 126)
+        bsr     sg_fkin                 | encoder F's press ours (build 143)
+        tst.l   sg_tnum                 | the track number: only in TRKS, on step 1 (build 143)
+        beq.s   .Lpl_t
+        bsr     sg_tnv
+        bne.s   .Lpl_c
+        tst.l   sg_step
+        beq.s   .Lpl_t
+.Lpl_c: clr.l   sg_tnum
+.Lpl_t:
         bsr     sg_fkb
         bsr     sg_utick
         bsr     sg_stopk
@@ -1337,7 +1347,22 @@ sg_mv:
         bra     6f
 0:      tst.l   sg_full                 | the full view: along all 64, wrapping (build 92)
         beq.s   0f
-        add.l   %d1,sg_step
+        bsr     sg_tnv                  | TRKS: the track number left of step 1 (build 143)
+        bne.s   .Lmv_w
+        tst.l   sg_tnum
+        beq.s   .Lmv_l
+        tst.l   %d1                     | on the number: RIGHT back to step 1, LEFT nothing
+        bmi     6f
+        clr.l   sg_tnum
+        bra     6f
+.Lmv_l: tst.l   %d1
+        bpl.s   .Lmv_w
+        tst.l   sg_step
+        bne.s   .Lmv_w
+        moveq   #1,%d0                  | LEFT from step 1: onto the track number
+        move.l  %d0,sg_tnum
+        bra     6f
+.Lmv_w: add.l   %d1,sg_step
         moveq   #63,%d0
         and.l   %d0,sg_step
         bra     6f
@@ -1406,6 +1431,8 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne     7f                      | press only
+        tst.l   sg_tnum                 | on the track number: nothing (build 143)
+        bne     7f
         tst.l   sg_aud                  | AUDIO: the step's trig cycled (build 110); NO's "CLEAR? YES" up:
         beq.s   0f                      | the step cleared (build 116, as on a MIDI track)
         bsr     sg_nask
@@ -5807,6 +5834,7 @@ sg_cop:
         bne.s   1f
         clr.l   0x460d0ffa              | (the stock's clipboard no longer the latest: build 113)
         clr.l   sg_cn                   | a copy: the clip starts again
+        clr.l   sg_ctrk                 | (not a whole track's, sg_ktrk sets it after)
         move.l  %d3,sg_ck
         moveq   #0,%d0
         move.l  %d0,sg_cpm
@@ -5971,14 +5999,14 @@ sg_kcop:
         moveq   #1,%d1
         cmp.l   8(%sp),%d1
         bne     9f
-        tst.l   sg_aud                  | AUDIO: CLEAR the cursor's step only (build 141), COPY / PASTE
-        beq.s   .Lkc_m                  | nothing (build 110)
-        moveq   #1,%d1
+        tst.l   sg_tnum                 | on the track number: the whole track (build 143)
+        bne     sg_ktrk
+        tst.l   sg_aud                  | AUDIO: CLEAR the cursor's step only (sg_aclr, the audio track's
+        beq.s   .Lkc_m                  | record; 141-142 cleared the MIDI track's step through sg_ndel),
+        moveq   #1,%d1                  | COPY / PASTE nothing (build 110)
         cmp.l   %d1,%d0
         bne     9f
-        clr.l   sg_idle
-        bsr     sg_ndel
-        bra     sg_now
+        bra     sg_aclr
 .Lkc_m: lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
         clr.l   sg_idle
@@ -6669,6 +6697,13 @@ sg_zfol:
 sg_kenc:
         bsr     sg_free
         bne     8f
+        moveq   #5,%d0                  | turning F: nothing in the view (build 143: F's press zooms,
+        cmp.l   4(%sp),%d0              | sg_fkp, which comes through here with sg_fkx set)
+        bne.s   .Lke_0
+        tst.l   sg_fkx
+        bne.s   .Lke_0
+        rts
+.Lke_0:
         tst.l   sg_full                 | the full view: both windows (build 92)
         bne.s   0f
         tst.l   sg_view
@@ -8616,7 +8651,20 @@ sg_flab:
         sub.l   sg_rh,%d1
         moveq   #0,%d2
         bsr     sg_tx
-        moveq   #0,%d0                  | the active track's: inverted, the glyph and a pixel round it
+        tst.l   sg_tnum                 | the cursor on the number (build 143): a box a pixel outside the
+        beq.s   .Lfl_n                  | active track's inverted cell
+        cmp.l   sg_row,%d7
+        bne.s   .Lfl_n
+        moveq   #SG_FLD-2,%d0
+        move.l  sg_rh,%d3
+        add.l   %a4,%d3
+        moveq   #-7,%d1
+        add.l   %d3,%d1
+        moveq   #SG_FLD+4,%d2
+        addq.l  #1,%d3
+        lea     SG_RECT,%a0
+        bsr     sg_r1
+.Lfl_n: moveq   #0,%d0                  | the active track's: inverted, the glyph and a pixel round it
         move.b  0x100b14cc,%d0
         cmp.l   %d7,%d0
         bne.s   9f
@@ -8635,7 +8683,11 @@ sg_flab:
 | full view only its first column (the steps repeat across it; the 8-track window counted from its
 | first step, sg_fwin; the 4-page window from step 1); elsewhere always (build 98). Uses d0 d1.
 sg_fcur1:
-        tst.l   sg_full
+        tst.l   sg_tnum                 | (the cursor on the track number: none on the steps, build 143)
+        beq.s   .Lfc_0
+        moveq   #0,%d0
+        rts
+.Lfc_0: tst.l   sg_full
         beq.s   9f
         tst.l   %d6
         ble.s   9f
@@ -10205,13 +10257,7 @@ sg_ptrg:
         lea     0x46c7d8de+0x3a*24,%a0
         lea     sg_pjsv+4,%a1
         bsr     sg_pjin
-        lea     0x46c7d8de+0x3d*24,%a0  | encoder F's press: the next layout (build 132)
-        move.l  (%a0),%d1
-        cmpi.l  #sg_pfk,%d1
-        beq.s   3f
-        move.l  %d1,sg_pjsv+8
-        move.l  #sg_pfk,(%a0)
-3:
+
         moveq   #1,%d0
         move.l  %d0,sg_ptin
         moveq   #0,%d0                  | a key let go (whichever handler saw it): its note off
@@ -10269,11 +10315,7 @@ sg_ptoff:
         cmpi.l  #sg_pjmp,%d1
         bne.s   4f
         move.l  sg_pjsv+4,(%a0)
-4:      lea     0x46c7d8de+0x3d*24,%a0
-        move.l  (%a0),%d1
-        cmpi.l  #sg_pfk,%d1
-        bne.s   5f
-        move.l  sg_pjsv+8,(%a0)
+4:
 5:      clr.l   0x460ba9ae              | our trig LEDs off, then the stock's own
         clr.l   0x460ba98c
         moveq   #1,%d0
@@ -10591,6 +10633,168 @@ sg_pfk:
 1:      moveq   #1,%d0
         bra     sg_pzoom
 9:      rts
+
+| Encoder F pressed in the view (the key table's handler, code 0x3d, state; build 143, Zach: every
+| "turn F" a "press F"): PITCH the next layout (sg_pfk); TRKS and PAGES the zoom, 16 <-> 32 a row; the
+| panel view's timeline 4 -> 8 -> 16 -> 4 a row (both through sg_kenc's F, sg_fkx set); the panel view's
+| 8 tracks nothing. A menu, popup, window of ours or the name's keyboard: the stock's handler.
+sg_fkp:
+        bsr     sg_free
+        bne     8f
+        tst.l   sg_win
+        bne     8f
+        tst.l   sg_kb
+        bne     8f
+        moveq   #1,%d0
+        cmp.l   8(%sp),%d0
+        bne     9f                      | (a press only)
+        tst.l   sg_full
+        beq.s   2f
+        tst.l   sg_pv
+        bne     sg_pfk
+        moveq   #1,%d1                  | TRKS / PAGES: 16 <-> 32
+        moveq   #3,%d0
+        cmp.l   sg_fzr,%d0
+        bne.s   5f
+        moveq   #-1,%d1
+        bra.s   5f
+2:      tst.l   sg_view                 | the panel view: its timeline only
+        beq.s   9f
+        moveq   #1,%d1
+        moveq   #2,%d0
+        cmp.l   sg_zm,%d0
+        bne.s   5f
+        moveq   #-2,%d1                 | 16 -> 4
+5:      moveq   #1,%d0
+        move.l  %d0,sg_fkx
+        move.l  %d1,-(%sp)
+        pea     5.w
+        bsr     sg_kenc
+        addq.l  #8,%sp
+        clr.l   sg_fkx
+9:      rts
+8:      movea.l sg_fksv,%a0
+        jmp     (%a0)
+
+| Encoder F's press ours in the key table while the view is up (sg_poll; the stock's kept in sg_fksv),
+| the stock's back off it. Uses d1 a0.
+sg_fkin:
+        lea     0x46c7d8de+0x3d*24,%a0
+        move.l  (%a0),%d1
+        cmpi.l  #sg_fkp,%d1
+        beq.s   9f
+        move.l  %d1,sg_fksv
+        move.l  #sg_fkp,(%a0)
+9:      rts
+sg_fkout:
+        lea     0x46c7d8de+0x3d*24,%a0
+        move.l  (%a0),%d1
+        cmpi.l  #sg_fkp,%d1
+        bne.s   9f
+        move.l  sg_fksv,(%a0)
+9:      rts
+
+| Z set in the full 8-track window (TRKS), where the cursor can sit on the track number (build 143).
+| Uses d0.
+sg_tnv:
+        moveq   #1,%d0
+        tst.l   sg_full
+        beq.s   9f
+        tst.l   sg_pv
+        bne.s   9f
+        tst.l   sg_view
+        bne.s   9f
+        moveq   #0,%d0
+9:      tst.l   %d0
+        rts
+
+| FUNC + REC / PLAY / STOP with the cursor on a track number (TRKS; sg_kcop, d0 the key: 0 COPY, 1
+| CLEAR, 2 PASTE; build 143): the whole track. COPY its 64 steps (a PAGES clip of all four pages) and
+| its LEN and SCALE; CLEAR its 64 steps; PASTE a track's clip onto it, the pages where they were and its
+| LEN and SCALE (another clip: as PASTE at step 1). AUDIO: CLEAR only (sg_aclrt). Uses everything but
+| a5 a6.
+sg_ktrk:
+        tst.l   sg_aud
+        beq.s   1f
+        moveq   #1,%d1
+        cmp.l   %d1,%d0
+        bne     9f
+        bra     sg_aclrt
+1:      lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        clr.l   sg_idle
+        clr.l   sg_step
+        moveq   #-1,%d1
+        move.l  %d1,sg_sela
+        move.l  %d0,%d6
+        moveq   #2,%d1
+        cmp.l   %d1,%d6
+        beq.s   4f
+        moveq   #15,%d0                 | COPY / CLEAR: all four pages
+        move.l  %d0,sg_wpm
+        moveq   #2,%d3
+        bsr     sg_cop
+        tst.l   %d6
+        bne.s   3f
+        bsr     sg_crec                 | COPY: the track's LEN and SCALE with the clip
+        moveq   #0,%d0
+        move.b  0x28(%a3),%d0
+        move.l  %d0,sg_ctl
+        move.b  0x29(%a3),%d0
+        move.l  %d0,sg_cts
+        moveq   #1,%d0
+        move.l  %d0,sg_ctrk
+        bra.s   3f
+4:      bsr     sg_cpaste
+        tst.l   sg_ctrk                 | a track's clip: its LEN and SCALE too
+        beq.s   3f
+        bsr     sg_crec
+        move.l  sg_ctl,%d0
+        move.b  %d0,0x28(%a3)
+        move.b  %d0,0x28(%a4)
+        move.l  sg_cts,%d0
+        move.b  %d0,0x29(%a3)
+        move.b  %d0,0x29(%a4)
+        bsr     sg_sref
+3:      movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        bra     sg_now
+9:      rts
+
+| CLEAR on an audio track's number (build 143): its 64 steps -- trig, trigless and p-lock masks clear,
+| every lock 0xff (as sg_aset clears a step), the bank and its CS1 copy, the dirty flags, 0x4009da20(t),
+| "CLEAR 64". Uses everything but a5 a6.
+sg_aclrt:
+        lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        clr.l   sg_idle
+        bsr     sg_sel                  | a1 the audio track's record
+        movea.l %a1,%a3                 | a3: its CS1 copy
+        suba.l  0x46c82456,%a3
+        adda.l  #0x1001614e,%a3
+        moveq   #23,%d1
+1:      clr.b   (0,%a1,%d1.l)
+        clr.b   (0,%a3,%d1.l)
+        subq.l  #1,%d1
+        bpl.s   1b
+        lea     0x59(%a1),%a0
+        lea     0x59(%a3),%a2
+        move.l  #2048,%d1
+        moveq   #-1,%d0
+2:      move.b  %d0,(%a0)+
+        move.b  %d0,(%a2)+
+        subq.l  #1,%d1
+        bne.s   2b
+        bsr     sg_dirty
+        move.l  sg_row,-(%sp)
+        jsr     0x4009da20
+        addq.l  #4,%sp
+        lea     sg_fcc,%a0
+        moveq   #64,%d0
+        bsr     sg_cmsg
+        movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        bra     sg_now
 
 | Encoder A / C pressed in the pitch view (the key table's handler, code 0x38 / 0x3a, state; build 131):
 | in ROLL 16 the cursor on the lowest / highest note on the page shown, and that note on the bottom /
@@ -12788,6 +12992,12 @@ sg_fpc: .long   -1                      | the full view's play column, the row's
 sg_tpo: .long   0                       | the page playing's place in the timeline's first screen row (93)
 sg_half: .long  0                       | 1: drawing a track's second line (build 93)
 sg_gx:  .long   SG_GX                   | the grid's first column (sg_zset)
+sg_tnum: .long 0                        | 1: the cursor on the track number in TRKS (build 143)
+sg_ctrk: .long 0                        | 1: the clip is a whole track's (sg_ktrk), its LEN and SCALE:
+sg_ctl:  .long 0
+sg_cts:  .long 0
+sg_fkx:  .long 0                        | 1: sg_kenc called by encoder F's press (sg_fkp)
+sg_fksv: .long 0                        | encoder F's stock press handler
 sg_vwch: .long 0                        | sg_vwin changed the panel view's window: draw (build 141)
 sg_nconf: .long 0                       | NO asked to clear (build 91; sg_nask)
 sg_ncs: .long   0                       | the step it asked for

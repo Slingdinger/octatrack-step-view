@@ -26,8 +26,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | **YES** | Put a note on the step (or open it if there's one already). |
 | **FUNC + PLAY** | Clear the step. |
 | **FUNC + NO** | Undo. **FUNC + YES** redoes. |
-| Turn **knob F** | Zoom in or out (Tracks and Pages). |
-| Press **encoder F** | Switch the piano-roll layout (Pitch). |
+| Press **encoder F** | Zoom in or out (Tracks, Pages), or switch the piano-roll layout (Pitch). |
 | **NO** | Back out: closes whatever is open, and from the grid, leaves STEP VIEW. |
 
 Leaving takes you back to the page you were on, in the mode you were in (MIDI or audio).
@@ -55,7 +54,7 @@ All 8 MIDI tracks, one row each. Use it to place trigs quickly and see what ever
 *32 steps a row (the default).*
 
 ![Tracks, 16 steps a row](docs/screens/tracks-16.png)
-*16 steps a row: turn knob F left.*
+*16 steps a row: press encoder F.*
 
 ![Tracks while playing](docs/screens/tracks-playing.png)
 *Playing: the play position is marked on every track.*
@@ -76,6 +75,14 @@ How to read it:
 - At the right: the cursor's step (S01) and which part of the pattern you're looking at (1/2). The
   zoom is at the bottom (32/R = 32 steps a row).
 
+**Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which gets a box.
+There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),
+**FUNC + STOP** pastes it onto the track you're on, and **FUNC + PLAY** clears all its steps.
+**UP / DOWN** move between track numbers, and **RIGHT** goes back to step 1. **FUNC + NO** undoes.
+
+![Tracks, the cursor on a track number](docs/screens/tracks-number.png)
+*The cursor on track 5's number, ready to copy, clear or paste the whole track.*
+
 ## 2. Pages: one track, all 64 steps
 
 The cursor's track, its four pages stacked. Use it to see a whole long track at once.
@@ -86,7 +93,7 @@ The cursor's track, its four pages stacked. Use it to see a whole long track at 
 *32 steps a row: two pages per row.*
 
 ![Pages, 16 steps a row](docs/screens/pages-16.png)
-*16 steps a row: one page per row. Turn knob F to switch.*
+*16 steps a row: one page per row. Press encoder F to switch.*
 
 - The bar under the title shows the pattern (A03) and the track's length (64).
 - **Knob D** changes the spacing between the rows.
@@ -178,16 +185,16 @@ parameter lock on that step). **NO** goes back to the grid.
 
 ---
 
-## Encoder F does different things in each view
+## Encoder F: press it to change how the view looks
 
-This is the one control that changes meaning, so here it is in one place:
+Press **encoder F** in any view to change how it's shown. Turning F does nothing in STEP VIEW.
 
-| View | Turn F | Press F |
-|---|---|---|
-| **Tracks** | Zoom: 16 or 32 steps a row | — |
-| **Pages** | Zoom: 16 or 32 steps a row | — |
-| **Pitch** | — | Next layout: ROLL 16 → ROLL 32 → KEYS 16 |
-| **Panel** (arranger on) | Zoom the timeline: 4, 8 or 16 steps a row | — |
+| View | Press F |
+|---|---|
+| **Tracks** | Zoom: 16 ↔ 32 steps a row |
+| **Pages** | Zoom: 16 ↔ 32 steps a row |
+| **Pitch** | Next layout: ROLL 16 → ROLL 32 → KEYS 16 |
+| **Panel** (arranger on) | Zoom the timeline: 4 → 8 → 16 steps a row |
 
 ---
 
@@ -210,6 +217,8 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 
 - **FUNC + LEVEL** marks a run of steps from the cursor. COPY, CLEAR or PASTE then work on that run.
   PASTE repeats what you copied to fill the run.
+- On a **track number** (Tracks): COPY, CLEAR and PASTE act on the whole track, length and scale
+  included. In AUDIO, CLEAR only.
 - With nothing marked: **CLEAR** clears the cursor's step, **COPY** opens the copy window, and
   **PASTE** puts the copy at the cursor.
 - **Copying between audio and MIDI tracks** (grid recording's FUNC + REC / FUNC + STOP) converts
@@ -267,8 +276,11 @@ it.
   too: it closes what's open, and from the grid it leaves.
 - **FUNC + PLAY to clear.** That's the Octatrack's own CLEAR combo. Undo (FUNC + NO) is there if you
   clear the wrong thing.
-- **Encoder F for zoom and layouts.** On the stock audio editor, F already zooms, so it zooms here
-  too. The Pitch view has no zoom, so pressing F there switches the layout instead.
+- **Press F to change the view.** One action does the same kind of thing everywhere: zoom in Tracks,
+  Pages and the timeline, the layout in Pitch. Turning F does nothing, so a knob bump can't change
+  the screen.
+- **The track number for whole-track actions.** The number is already the track's label, so putting
+  the cursor on it means "this whole track", the same way the cursor on a step means "this step".
 - **The Panel view for the arranger.** The arranger is the part of the Octatrack that's hardest to
   see. The Panel view puts the arrangement's timeline next to the numbers you need to edit it.
 - **Nothing outside STEP VIEW changes**, apart from these:

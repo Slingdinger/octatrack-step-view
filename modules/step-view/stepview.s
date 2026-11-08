@@ -813,9 +813,9 @@ sg_vflip:
         moveq   #-1,%d0
         move.l  %d0,sg_zlst
         bsr     sg_zset
-        tst.l   sg_nlay
-        beq.s   .Lvf_n
-        bsr     sg_tupd
+        bsr     sg_tlon                 | the view switched into a timeline: its rows again, from this
+        beq.s   .Lvf_n                  | view (sg_nlay is the last view's: from PITCH the full view's
+        bsr     sg_tupd                 | rows, readouts included, were drawn in Split's pane)
 .Lvf_n: clr.l   sg_idle
         clr.l   sg_bk
         bra     sg_now
@@ -2741,6 +2741,8 @@ sg_run:
         adda.l  %d0,%a0
         btst    #3,15(%a0)              | the full view's readout row (build 95)
         beq.s   .Lsg_tni
+        tst.l   sg_full                 | only there: Split's pane is x 60+, and a readout left in the
+        beq     .Lsg_tn                 | rows was drawn across its left column (8 Nov 2026)
         bsr     sg_tinfo
         bra     .Lsg_tn
 .Lsg_tni:

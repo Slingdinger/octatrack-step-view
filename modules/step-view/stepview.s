@@ -214,7 +214,9 @@ sg_poll:
         beq.s   0f                      | screen-changed flag is set every tick, as the stock's tempo
         moveq   #1,%d0                  | drawer does on the other pages (it is off on this one), so the
         move.l  %d0,0x46c7c72c          | window's own redraws reach the panel
-        bra     9f
+        moveq   #0,%d1                  | -- and the page redrawn if the stock drew on it under the window
+        bsr     sg_run                  | (build 145: RELOAD's popup left the ARP page's bottom bar, its
+        bra     9f                      | title and scenes, under it; sg_run's plane checksum sees that)
 0:      tst.l   sg_aud                  | AUDIO: the MIDI key's LED off (the Octatrack stays in MIDI mode
         beq.s   0f                      | under it; id 0x46, 0x40033f70's pair; build 116)
         pea     0x46.w

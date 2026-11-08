@@ -11467,20 +11467,23 @@ sg_pd1:
         cmpi.l  #112,%d2
         ble.s   1b
         bsr     sg_pcb                  | the trig keys' first note's octaves (build 136): a dotted line
-        sub.l   sg_pb,%d0               | on each one's foot row, every 2 px, x 16-125
-        bsr     sg_pm12
+        sub.l   sg_pb,%d0               | on each one's foot row: a dot under each step's middle, as the
+        bsr     sg_pm12                 | foot row (build 147, Zach; every 2 px, x 16-125, until 146)
         move.l  %d0,%d4
 1:      moveq   #23,%d5
         sub.l   %d4,%d5
         add.l   %d5,%d5
         addi.l  #10,%d5                 | y + 1 = 10 + 2 (23 - n)
-        moveq   #16,%d2
+        moveq   #0,%d2                  | d2: the step, 0-31
 2:      move.l  %d2,%d0
+        bsr     sg_p1x
+        addq.l  #1,%d0
         move.l  %d5,%d1
         bsr     sg_xp
-        addq.l  #2,%d2
-        cmpi.l  #125,%d2
-        ble.s   2b
+        addq.l  #1,%d2
+        moveq   #32,%d0
+        cmp.l   %d0,%d2
+        blt.s   2b
         addi.l  #12,%d4
         moveq   #23,%d0
         cmp.l   %d0,%d4

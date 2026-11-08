@@ -12946,7 +12946,6 @@ sg_fhd3: .asciz "%d-%d S%02d"             | (the 8-track window's, build 100)
 sg_fh4: .asciz  "S%02d"                 | (its right column, build 100)
 sg_fh5: .asciz  "%d/%d"
 sg_fzz: .asciz  "%d/R"                  | (build 90; a Z read as a 2)
-sg_fds: .asciz  "%d %s"
 sg_fdn: .asciz  "%d"
 sg_fvl: .asciz  "VEL"
 sg_fln: .asciz  "LEN"

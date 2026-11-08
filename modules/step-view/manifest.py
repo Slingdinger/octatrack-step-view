@@ -168,6 +168,8 @@ MODULE = Module(
         SymbolRef(0x4005f46c, 0x4002993c, "stepview", "sg_acpy", "GRID RECORDING FUNC + REC, an audio track's copy: is it OCTA-303, its TUNE"),
         SymbolRef(0x4005ead4, 0x4002b62c, "stepview", "sg_mpst", "GRID RECORDING FUNC + STOP, a MIDI track's paste: an audio track's clipboard converted"),
         SymbolRef(0x400c085c, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob A: the pitch view's cursor note"),
+        SymbolRef(0x400c0872, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob B: in AUDIO only with a trig key down"),
+        SymbolRef(0x400c0888, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob C: in AUDIO only with a trig key down"),
         SymbolRef(0x400c089e, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob D: the full timeline's row spacing"),
         SymbolRef(0x400c08b4, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob E: the step editor's scroll in the 4-page window and the timeline"),
         SymbolRef(0x400c08ca, 0x40055008, "stepview", "sg_kenc", "shared encoder table, knob F: the step editor's zoom in the 4-page window and the timeline"),

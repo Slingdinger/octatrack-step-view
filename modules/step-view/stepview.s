@@ -217,14 +217,8 @@ sg_poll:
         moveq   #0,%d1                  | -- and the page redrawn if the stock drew on it under the window
         bsr     sg_run                  | (build 145: RELOAD's popup left the ARP page's bottom bar, its
         bra     9f                      | title and scenes, under it; sg_run's plane checksum sees that)
-0:      tst.l   sg_aud                  | AUDIO: the MIDI key's LED off (the Octatrack stays in MIDI mode
-        beq.s   0f                      | under it; id 0x46, 0x40033f70's pair; build 116)
-        pea     0x46.w
-        jsr     0x4001321c
-        addq.l  #4,%sp
-        clr.l   0x460ba98c              | and the trig keys' LEDs (ids 0-31, both colours) off: they
-        clr.l   0x460ba9ae              | would show the MIDI track (build 119)
-0:      bsr     sg_vwin                 | the panel view's window: the arranger's (build 141)
+0:      bsr     sg_vwin                 | the panel view's window: the arranger's (build 141; AUDIO: the
+                                        | MIDI key's and trig keys' LEDs the stock's, audio mode's, build 149)
         bsr     sg_drest                | the MIDI activity dots: the page's pixels back (build 71)
         addq.l  #1,sg_bk                | the cursor's blink
         bsr     sg_flash                | its bits 4 and 5 from the tempo (build 126)
@@ -361,6 +355,17 @@ sg_tsel:
         addq.l  #8,%sp
         addq.l  #4,%sp
         jsr     0x4007c264
+9:      rts
+
+| Z clear when a trig key (codes 0x00-0x0f) is down. Uses d1 a0.
+sg_tkd:
+        lea     SG_HELD,%a0
+        moveq   #16,%d1
+1:      tst.l   (%a0)
+        bne.s   9f
+        lea     24(%a0),%a0
+        subq.l  #1,%d1
+        bne.s   1b
 9:      rts
 
 | The trig keys' page (0x460d1e04: the page PAGE steps in grid recording, the one a trig key edits;
@@ -720,7 +725,9 @@ sg_thold:
         clr.l   sg_cpat
         clr.l   sg_idle
         clr.l   sg_bk
-3:      move.l  sg_th,%d1
+3:      tst.l   sg_aud                  | AUDIO: no panel -- the held trig is the stock's (its locks by the
+        bne.s   9f                      | knobs, audio mode's; build 149)
+        move.l  sg_th,%d1
         bmi.s   9f                      | opened this hold already
         addq.l  #1,%d1
         move.l  %d1,sg_th
@@ -842,13 +849,12 @@ sg_vwin:
 9:      rts
 
 | Out of MIXER + MIDI's view by NO in the grid (build 141): as a page key leaves it, then the page
-| drawn -- the one the view was opened from, or the ARP page by its key when it was opened there
-| (sg_omp -1; the stock's page now). Uses everything but a5 a6.
+| drawn -- the one the view was opened from, or the ARP / AMP page by its key when it was opened there
+| (nothing drawn by sg_mxout: sg_on still set; the stock's page now). Uses everything but a5 a6.
 sg_nout:
-        move.l  sg_omp,%d7
         bsr     sg_mxout
-        tst.l   %d7
-        bpl.s   9f
+        tst.l   sg_on
+        beq.s   9f
         moveq   #-1,%d0
         move.l  %d0,0x400c0aac
         pea     1.w
@@ -955,13 +961,16 @@ sg_free:
 9:      rts
 
 | Z set when page d0 is the MIDI ARP page and MIXER + MIDI opened the view there (sg_own, build 140: the
-| ARP page is the stock's again otherwise, the arpeggiator back). Uses d1.
+| ARP page is the stock's again otherwise, the arpeggiator back) -- or, in AUDIO, the audio side's AMP
+| page (page 2 too): the Octatrack is in audio mode under the audio views (build 149). Uses d1.
 sg_vis:
         tst.l   sg_own
         beq.s   1f
         tst.l   0x80000012              | MIDI mode
+        bne.s   2f
+        tst.l   sg_aud                  | audio mode: the AUDIO views' (build 149)
         beq.s   1f
-        moveq   #2,%d1
+2:      moveq   #2,%d1
         cmp.l   %d1,%d0
         rts
 1:      moveq   #1,%d1
@@ -6706,6 +6715,18 @@ sg_zfol:
 sg_kenc:
         bsr     sg_free
         bne     8f
+        moveq   #2,%d0                  | A B C in AUDIO (build 149): the page under the view is the audio
+        cmp.l   4(%sp),%d0              | track's AMP page (audio mode), so only with a trig key down (a
+        bcs.s   .Lke_f                  | lock, as the stock's), else nothing; B C in the MIDI views the
+        tst.l   sg_aud                  | stock's as before (they reach here since build 149)
+        bne.s   0f
+        tst.l   4(%sp)
+        bne     8f
+        bra.s   .Lke_f
+0:      bsr     sg_tkd
+        bne     8f
+        rts
+.Lke_f:
         moveq   #5,%d0                  | turning F: nothing in the view (build 143: F's press zooms,
         cmp.l   4(%sp),%d0              | sg_fkp, which comes through here with sg_fkx set)
         bne.s   .Lke_0
@@ -6990,9 +7011,12 @@ sg_scsc:
         jsr     0x4005695c
         tst.l   sg_own
         bne.s   1f
+        moveq   #0,%d0                  | AUDIO in audio mode (sg_mxin keeps the mode, build 149)
+        tst.l   0x80000012
+        bne.s   2f
+        moveq   #1,%d0
+2:      move.l  %d0,sg_aud
         bsr     sg_mxin
-        move.l  sg_oam,%d0
-        move.l  %d0,sg_aud
         bsr     sg_alab
         moveq   #1,%d0
         move.l  %d0,sg_scret
@@ -8851,8 +8875,10 @@ sg_kmidi:
         tst.l   sg_mxa                  | MIDI alone in the view: AUDIO on / off
         beq.s   0f
         clr.l   sg_mxa
-        moveq   #1,%d0
-        eor.l   %d0,sg_aud
+        moveq   #1,%d0                  | the other side: the Octatrack's mode with it, the view on its
+        sub.l   sg_aud,%d0              | page 2 (sg_amode, build 149)
+        bsr     sg_amode
+        tst.l   sg_aud
         bne.s   .Lkm_a
         bsr     sg_mled                 | (AUDIO off: the LED back, build 116)
 .Lkm_a: clr.l   sg_pv
@@ -8919,25 +8945,59 @@ sg_kmix:
 2:      clr.l   sg_mxu
 9:      rts
 
-| In: MIDI mode, the ARP page, the full view (sg_own). Uses everything but a5 a6.
-sg_mxin:
-        clr.l   sg_oam
-        tst.l   0x80000012
-        bne.s   1f
-        moveq   #1,%d0                  | audio mode: to MIDI
-        move.l  %d0,sg_oam
+| The Octatrack's mode to the side the view shows (build 149): d0 = 1 AUDIO (audio mode), 0 MIDI. A
+| switch is the stock's own (0x40055548, as the MIDI key's release calls it; on a press it hung the
+| unit under the port, build 108), landing on the other side's page 2 (ARP / AMP: 0x460d1688 set
+| first); in the view (sg_own) the stock's track follows the cursor's row (trig keys, LEDs, FUNC +
+| BANK's trig edit, a held trig's locks: the audio track's in AUDIO). sg_aud is set before a switch to
+| audio mode and cleared after one to MIDI mode, so sg_vis holds through the switch's redraws.
+| Uses d0 d1 a0 a1.
+sg_amode:
+        tst.l   %d0
+        beq.s   5f
+        moveq   #1,%d1
+        move.l  %d1,sg_aud
+        tst.l   0x80000012              | MIDI mode: to audio mode
+        beq.s   9f
+        bra.s   6f
+5:      tst.l   0x80000012              | audio mode: to MIDI mode
+        bne.s   7f
+6:      moveq   #2,%d1
+        move.l  %d1,0x460d1688
         clr.l   -(%sp)                  | (code, 0) as the MIDI key's release passes them: it writes its
         pea     0x35.w                  | first argument's slot (0x4005566a) before its tail call
         jsr     0x40055548
         addq.l  #8,%sp
-1:      moveq   #-1,%d1
-        move.l  0x460d1684,%d0          | the MIDI side's page: kept, unless it is the ARP page already
-        cmpi.l  #2,%d0
-        beq.s   2f
-        move.l  %d0,%d1
-2:      move.l  %d1,sg_omp
-        tst.l   %d1
-        bmi.s   3f
+        tst.l   sg_own
+        beq.s   7f
+        move.l  sg_row,%d0
+        bsr     sg_tsel
+7:      tst.l   0x80000012
+        beq.s   9f
+        clr.l   sg_aud
+9:      rts
+
+| In: the view's side's mode (sg_aud: AUDIO in audio mode, build 149; MIDI mode before), page 2 (the
+| ARP page, the AMP page in AUDIO), the full view (sg_own). The mode before it (sg_oam) and each
+| side's page before it (sg_omp MIDI, sg_oap audio) kept for sg_mxout. Uses everything but a5 a6.
+sg_mxin:
+        clr.l   sg_oam
+        move.l  0x460d1684,%d0
+        move.l  0x460d1688,%d1
+        tst.l   0x80000012
+        bne.s   1f
+        moveq   #1,%d2                  | audio mode
+        move.l  %d2,sg_oam
+        move.l  %d0,sg_oap
+        move.l  %d1,sg_omp
+        bra.s   2f
+1:      move.l  %d0,sg_omp
+        move.l  %d1,sg_oap
+2:      move.l  sg_aud,%d0
+        bsr     sg_amode
+        moveq   #2,%d0                  | not on page 2: the ARP / AMP page by its key (the last key
+        cmp.l   0x460d1684,%d0          | cleared so it is not a double press)
+        beq.s   3f
         moveq   #-1,%d0
         move.l  %d0,0x400c0aac
         pea     1.w
@@ -8964,7 +9024,10 @@ sg_mxin:
         bsr     sg_tupd
 9:      rts
 
-| Out: the full view as it was, the MIDI side's page back, audio mode back. Uses everything but a5 a6.
+| Out: the full view as it was. From AUDIO (audio mode, build 149) the mode stays: the MIDI side's
+| page before it back (0x460d1688), the audio side's by its key. From the MIDI views: the MIDI side's
+| page by its key, the audio side's back, and audio mode back when it was on before (sg_oam), on that
+| page. Uses everything but a5 a6.
 sg_mxout:
         bsr     sg_aoff
         clr.l   sg_pv
@@ -8973,11 +9036,34 @@ sg_mxout:
         clr.l   sg_win
         move.l  sg_ofull,%d0
         move.l  %d0,sg_full
-        move.l  sg_omp,%d0
-        bmi.s   1f
+        tst.l   0x80000012
+        beq.s   5f
+        move.l  sg_oap,%d0              | MIDI mode: the audio side's page back
+        move.l  %d0,0x460d1688
+        move.l  sg_omp,%d0              | the MIDI side's by its key
+        bsr     sg_pgo
+        tst.l   sg_oam
+        beq.s   9f
+        clr.l   -(%sp)                  | audio mode back (as the MIDI key's release passes them: it
+        pea     0x35.w                  | writes its first argument's slot, 0x4005566a, before its
+        jsr     0x40055548              | tail call)
+        addq.l  #8,%sp
+        bra.s   9f
+5:      move.l  sg_omp,%d0              | audio mode: the MIDI side's page back
+        move.l  %d0,0x460d1688
+        move.l  sg_oap,%d0              | the audio side's by its key
+        bsr     sg_pgo
+9:      rts
+
+| Page d0 (0-4) by its key (sg_pgk), the last key cleared so it is not a double press; page 2 (the
+| view's own, ARP / AMP) not: the caller draws it (sg_nout). Uses everything but a5 a6.
+sg_pgo:
+        moveq   #2,%d1
+        cmp.l   %d1,%d0
+        beq.s   9f
         moveq   #4,%d1
         cmp.l   %d1,%d0
-        bhi.s   1f
+        bhi.s   9f
         lea     sg_pgk,%a0
         moveq   #0,%d1
         move.b  (0,%a0,%d0.l),%d1
@@ -8987,12 +9073,8 @@ sg_mxout:
         move.l  %d1,-(%sp)
         jsr     0x4005578c
         addq.l  #8,%sp
-1:      tst.l   sg_oam
-        beq.s   9f
-        clr.l   -(%sp)                  | (code, 0) as the MIDI key's release passes them: it writes its
-        pea     0x35.w                  | first argument's slot (0x4005566a) before its tail call
-        jsr     0x40055548
-        addq.l  #8,%sp
+        moveq   #-1,%d0                 | and cleared after it: a page key leaving the view (sg_pkey)
+        move.l  %d0,0x400c0aac          | is the stock's next, not a double press (its SETUP)
 9:      rts
 
 | ---- AN AUDIO TRACK PASTED ON A MIDI TRACK (build 113): the stock's track copy (GRID RECORDING, FUNC +
@@ -9317,7 +9399,7 @@ sg_a2m:
 9:      rts
 
 | ---- AUDIO (build 110): in MIXER + MIDI's view, MIDI alone switches the view between the 8 MIDI tracks
-|      and the 8 audio tracks (sg_aud; the Octatrack stays in MIDI mode). The views read an audio track's
+|      and the 8 audio tracks (sg_aud; the Octatrack in audio mode since build 149, sg_amode). The views read an audio track's
 |      record (pattern + 0x91a t: the trig mask +0x00, trigless +0x08, locks +0x59 + 32 s, its LEN +0x50
 |      in PER TRACK) and its step playing (0x800064e0 + t, running 0x80006500 + t: 0x4009b2b0 /
 |      0x4009b290's first 8 entries). The titles read AUD: / APGS:, a track "T<n>"; no panel, no
@@ -12873,7 +12955,8 @@ sg_ownw: .long  0                       | ticks left for the page to come (build
 sg_mxu: .long   0                       | 1: MIXER held for MIXER + MIDI: its release opens nothing (111)
 sg_mxk: .long   0                       | 1: the combo's MIDI press seen, its release not yet
 sg_oam: .long   0                       | 1: audio mode before it
-sg_omp: .long   -1                      | the MIDI side's page before it, -1 the ARP page already
+sg_omp: .long   2                       | the MIDI side's page before it (0-4)
+sg_oap: .long   0                       | the audio side's page before it (0-4, build 149)
 sg_ofull: .long 0                       | the full view before it
 sg_pgk: .byte   0x22, 0x24, 0x23, 0x25, 0x26 | page 0-4 -> its key (build 108)
 sg_fpv: .asciz  "PITCH T%d %s%s S%02d"

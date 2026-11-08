@@ -29,7 +29,8 @@ Octatrack OS (1.40C, MKI and MKII).
 | Press **encoder F** | Zoom in or out (Tracks, Pages), or switch the piano-roll layout (Pitch). |
 | **NO** | Back out: closes whatever is open, and from the grid, leaves STEP VIEW. |
 
-Leaving takes you back to the page you were on, in the mode you were in (MIDI or audio).
+Leaving from the MIDI tracks takes you back to the page you were on, in the mode you were in (MIDI or
+audio). Leaving from the audio tracks keeps the Octatrack in audio mode.
 
 ---
 
@@ -230,6 +231,12 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 
 Press **MIDI** alone (without MIXER) to see the 8 **audio** tracks instead. Tracks and Pages work
 there: you can see, add and clear trigs. Pitch and Panel are MIDI only.
+
+Showing the audio tracks puts the Octatrack itself in audio mode (press MIDI again to go back), so
+the hardware works on the audio track under the cursor as it normally would: the trig keys and their
+LEDs in grid recording, FUNC + BANK's track settings, and holding a trig to lock a value. The page
+under the view is AMP, so a held trig with knobs A-C locks AMP values; without a trig held, knobs A-C
+do nothing here (they would change AMP settings you can't see).
 
 ### Track names
 

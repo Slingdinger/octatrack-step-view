@@ -101,6 +101,10 @@ The cursor's track, its four pages stacked. Use it to see a whole long track at 
 
 **Arranger on: the timeline**
 
+![Pages, arranger on: three arrangement rows](docs/screens/pages-arranger-rows.png)
+*Three arrangement rows at once, 16 steps a row: A01 twice, A02 once, A03 twice. Every row's steps
+for the cursor's track, in the order they'll play, without opening a single pattern.*
+
 ![Pages, arranger on: the timeline](docs/screens/pages-arranger.png)
 *The timeline. The inverted line is an arrangement row's settings: R00 (row 0), A03 (its pattern), X2
 (played twice), 00:00 (offset and length; 0 = the pattern's length), S-/- (no scenes). Under it, that
@@ -125,7 +129,8 @@ doesn't change this view.
 *ROLL 32: two pages across two octaves.*
 
 ![Pitch, KEYS 16](docs/screens/pitch-keys16.png)
-*KEYS 16: turned sideways, steps run down the screen over a keyboard.*
+*KEYS 16: turned sideways, steps run down the screen over a keyboard, like a player piano's roll
+feeding into the keys.*
 
 How to read it:
 

@@ -104,6 +104,22 @@ sg_rest:
         moveq   #30,%d3
         lea     SG_FILL,%a0
         bsr     sg_r1
+        moveq   #8,%d0                  | the frame's left edge, rows 0-62 (build 142: cleared above and
+        moveq   #0,%d1                  | never drawn again, 0x4004b284 draws the frame once), and row 0
+        moveq   #8,%d2                  | outside x 8-119, where the full view's top line runs (x 0-127)
+        moveq   #62,%d3
+        lea     SG_FILL,%a0
+        bsr     sg_r1
+        moveq   #0,%d0
+        moveq   #0,%d1
+        moveq   #7,%d2
+        moveq   #0,%d3
+        bsr     sg_clr
+        moveq   #120,%d0
+        moveq   #0,%d1
+        moveq   #127,%d2
+        moveq   #0,%d3
+        bsr     sg_clr
         move.l  8(%a6),-(%sp)
         jsr     0x4004d948              | the main view draw (page)
         addq.l  #4,%sp
@@ -768,11 +784,10 @@ sg_vflip:
         beq.s   .Lvf_h
         clr.l   sg_view                 | AUDIO: PAGES -> TRKS
         bra.s   .Lvf_n
-.Lvf_h: moveq   #1,%d0                  | PAGES -> PITCH
-        move.l  %d0,sg_pv
-        clr.l   sg_mode
-        bsr     sg_pini
-        bra.s   .Lvf_n
+.Lvf_h: moveq   #1,%d0                  | PAGES -> PITCH: its range, cursor note and trig keys as they
+        move.l  %d0,sg_pv               | were (build 142: sg_pini re-centred them on the cursor step's
+        clr.l   sg_mode                 | note each visit, so the range moved and the project's RANGE
+        bra.s   .Lvf_n                  | was lost)
 .Lvf_z: clr.l   sg_mode
         moveq   #-1,%d0
         move.l  %d0,sg_zlst

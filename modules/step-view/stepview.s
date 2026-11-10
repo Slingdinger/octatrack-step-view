@@ -359,6 +359,338 @@ sg_tsel:
         jsr     0x4007c264
 9:      rts
 
+| ---- APGS'S PANEL (build 157, Zach's mock): with AUDIO's Pages view up and the arranger off, rows 33-63
+|      show the cursor's audio track's page (the page under the view: the page keys pick it, PLAYBACK
+|      AMP LFO FX1 FX2) on the left and its SETUP on the right, 6 values each (3 rows of 2, names from
+|      the page's descriptor, FUN_40031da4(track, page) + 0x16, values through its formatters + 0xca;
+|      the Part's bytes, PARAM_PAGES.md 5a). A trig key held: the left half the step's locks, a locked
+|      value highlighted. Knobs A-F the stock's on that page (its values, a held trig's locks);
+|      FUNC + a knob the SETUP value (the page's page-2 editor; LFO's none). The 4-page rows above it.
+
+| d1 = 1 (Z clear) when the panel is up: the view, audio mode, AUDIO, the full view's Pages, the
+| arranger off, not the pitch view. Keeps d0. Uses d1.
+sg_apon:
+        moveq   #0,%d1
+        tst.l   sg_own
+        beq.s   9f
+        tst.l   0x80000012
+        bne.s   9f
+        tst.l   sg_aud
+        beq.s   9f
+        tst.l   sg_full
+        beq.s   9f
+        tst.l   sg_view
+        beq.s   9f
+        tst.l   sg_nlay
+        bne.s   9f
+        tst.l   sg_pv
+        bne.s   9f
+        moveq   #1,%d1
+9:      tst.l   %d1
+        rts
+
+| FUNC + knob (sg_kenc's frame: slot @4, delta @8) on APGS's panel: the SETUP value through the page's
+| page-2 editor (slot, delta), the stock's track (the cursor's, sg_tsel); then the redraw.
+sg_apfx:
+        move.l  0x460d1684,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bhi.s   9f
+        lea     sg_ap2e,%a0
+        move.l  (0,%a0,%d0.l*4),%d0
+        beq.s   9f
+        movea.l %d0,%a0
+        move.l  8(%sp),-(%sp)
+        move.l  8(%sp),-(%sp)
+        jsr     (%a0)
+        addq.l  #8,%sp
+        bra     sg_now
+9:      rts
+
+| The panel's drawing (sg_run's full view, a2 the pattern). Uses nothing (all kept).
+sg_apanel:
+        bsr     sg_apon
+        bne.s   0f
+        rts
+0:      lea     -44(%sp),%sp
+        movem.l %d0-%d7/%a2-%a4,(%sp)
+        moveq   #0,%d0                  | rows 32-63 clear, a line at 32, a dotted one down x 63
+        moveq   #32,%d1
+        moveq   #127,%d2
+        moveq   #63,%d3
+        bsr     sg_clr
+        moveq   #0,%d0
+        moveq   #32,%d1
+        moveq   #127,%d2
+        moveq   #32,%d3
+        lea     SG_FILL,%a0
+        bsr     sg_r1
+        moveq   #34,%d4
+1:      moveq   #63,%d0
+        move.l  %d4,%d1
+        moveq   #63,%d2
+        move.l  %d4,%d3
+        lea     SG_FILL,%a0
+        bsr     sg_r1
+        addq.l  #2,%d4
+        moveq   #63,%d0
+        cmp.l   %d0,%d4
+        ble.s   1b
+        moveq   #7,%d7                  | d7: the track
+        and.l   sg_row,%d7
+        move.l  0x460d1684,%d6          | d6: the page (0-4)
+        moveq   #4,%d0
+        cmp.l   %d0,%d6
+        bls.s   1f
+        moveq   #2,%d6
+1:      move.l  %d6,-(%sp)              | a4: its descriptor
+        move.l  %d7,-(%sp)
+        jsr     0x40031da4
+        addq.l  #8,%sp
+        tst.l   %d0
+        beq     .Lap_x
+        movea.l %d0,%a4
+        movea.l 0x46c82456,%a3          | a3: Part' (the bank + 0x8ed80 + part x 6322)
+        adda.l  #0x8ed80,%a3
+        moveq   #0,%d0
+        move.b  0x100b14cf,%d0
+        move.l  #6322,%d1
+        muls.l  %d1,%d0
+        adda.l  %d0,%a3
+        moveq   #0,%d5                  | d5: the machine
+        move.b  (0x22,%a3,%d7.l),%d5
+        lea     sg_apv1,%a0             | the page's two value rows' addresses
+        move.l  %d7,%d0
+        moveq   #30,%d1
+        muls.l  %d1,%d0                 | t x 30
+        move.l  %d5,%d1
+        mulu.w  #6,%d1                  | machine x 6
+        tst.l   %d6
+        bne.s   2f
+        move.l  %a3,%d2                 | PLAYBACK: + 0x2a / + 0x1da, + t x 30 + machine x 6
+        add.l   %d0,%d2
+        add.l   %d1,%d2
+        move.l  %d2,%d3
+        addi.l  #0x2a,%d2
+        addi.l  #0x1da,%d3
+        bra.s   3f
+2:      move.l  %d7,%d2                 | the others: + 0x11a + t x 24 + (page - 1) x 6; page 2 + 0x2f2
+        mulu.w  #24,%d2                 | + t x 30 + (page - 1) x 6
+        move.l  %d6,%d1
+        subq.l  #1,%d1
+        mulu.w  #6,%d1
+        add.l   %d1,%d2
+        add.l   %a3,%d2
+        addi.l  #0x11a,%d2
+        move.l  %a3,%d3
+        add.l   %d0,%d3
+        add.l   %d1,%d3
+        addi.l  #0x2f2,%d3
+3:      move.l  %d2,(%a0)
+        move.l  %d3,4(%a0)
+        moveq   #-1,%d0                 | a trig key held: its step's locks (the page's 6 slots)
+        move.l  %d0,sg_apsx
+        bsr     sg_apkey
+        bmi.s   4f
+        move.l  %d0,sg_apsx
+4:      bsr     sg_aphdr
+        moveq   #0,%d4                  | d4: the value, 0-11
+.Lap_l:
+        bsr     sg_apcell
+        addq.l  #1,%d4
+        moveq   #12,%d0
+        cmp.l   %d0,%d4
+        blt.s   .Lap_l
+.Lap_x:
+        movem.l (%sp),%d0-%d7/%a2-%a4
+        lea     44(%sp),%sp
+        rts
+
+| d0 = the first trig key down's step on the trig keys' page (0x460d1e04), -1 none (flags). Uses d0 d1 a0.
+sg_apkey:
+        lea     SG_HELD,%a0
+        moveq   #0,%d0
+1:      tst.l   (%a0)
+        bne.s   2f
+        lea     24(%a0),%a0
+        addq.l  #1,%d0
+        moveq   #16,%d1
+        cmp.l   %d1,%d0
+        blt.s   1b
+        moveq   #-1,%d0
+        rts
+2:      move.l  0x460d1e04,%d1
+        andi.l  #3,%d1
+        lsl.l   #4,%d1
+        add.l   %d1,%d0
+        tst.l   %d0
+        rts
+
+| The two titles (rows 34-38): the page's name and the track ("AMP T1", a step held "S05 AMP") on the
+| left, "SETUP" on the right. a4 the descriptor, d6 the page, d7 the track. Uses d0-d3 a0 a1.
+sg_aphdr:
+        move.l  sg_apsx,%d0
+        bmi.s   1f
+        addq.l  #1,%d0
+        move.l  %d0,-(%sp)
+        pea     4(%a4)                  | the abbreviation (E + 0x3c = P + 4)
+        pea     sg_apfs
+        bra.s   2f
+1:      move.l  %d7,%d0
+        addq.l  #1,%d0
+        move.l  %d0,-(%sp)
+        pea     4(%a4)
+        pea     sg_apft
+2:      pea     sg_b1
+        jsr     SG_SPRINTF
+        lea     16(%sp),%sp
+        lea     SG_SMALL,%a0
+        lea     sg_b1,%a1
+        moveq   #1,%d0
+        moveq   #25,%d1                 | rows 34-38
+        moveq   #0,%d2
+        bsr     sg_tx
+        lea     SG_SMALL,%a0
+        lea     sg_apsu,%a1
+        moveq   #66,%d0
+        moveq   #25,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        rts
+
+| Value d4 (0-5 the page, 6-11 its SETUP) at its cell: name at the cell's left, value right-aligned to
+| its end (30 px cells: x 1, 32 | 66, 97; rows 41, 48, 55); a lock highlighted. a2 the pattern, a4 the
+| descriptor, d6 the page, d7 the track. Uses d0-d3 a0 a1; keeps d4-d7.
+sg_apcell:
+        lea     -16(%sp),%sp
+        movem.l %d4-%d7,(%sp)
+        move.l  %d4,%d0                 | the name (P + 0x16 + 6 i); blank or "---": nothing
+        mulu.w  #6,%d0
+        lea     (0x16,%a4,%d0.l),%a0
+        move.b  (%a0),%d0
+        beq     .Lac_x
+        cmpi.b  #0x2d,%d0
+        beq     .Lac_x
+        lea     sg_b2,%a1
+        moveq   #5,%d1
+1:      move.b  (%a0)+,(%a1)+
+        subq.l  #1,%d1
+        bne.s   1b
+        clr.b   (%a1)
+        move.l  %d4,%d5                 | d5: 0-5 within its half, d6 := the half's value address
+        moveq   #0,%d3                  | d3: 1 locked
+        cmpi.l  #6,%d5
+        blt.s   2f
+        subq.l  #6,%d5
+        movea.l sg_apv1+4,%a0
+        moveq   #1,%d0                  | LFO SETUP: LFO 1's PMTR WAVE MULT TRIG (+0 +3 +0x18 +0x1b of the
+        cmp.l   %d6,%d0                 | PMTR / WAVE row, MULT / TRIG at Part' + 0x30a), no 5th / 6th
+        bne.s   3f
+        moveq   #4,%d0
+        cmp.l   %d0,%d5
+        bge     .Lac_x
+        lea     sg_aplf,%a1
+        move.b  (0,%a1,%d5.l),%d0
+        adda.l  %d0,%a0
+        moveq   #0,%d1
+        move.b  (%a0),%d1
+        bra.s   4f
+2:      movea.l sg_apv1,%a0
+3:      moveq   #0,%d1
+        move.b  (0,%a0,%d5.l),%d1       | the Part's
+        cmpi.l  #6,%d4
+        bge.s   4f
+        move.l  sg_apsx,%d0             | a step held: its lock, if any
+        bmi.s   4f
+        lsl.l   #5,%d0
+        move.l  %d7,%d2
+        mulu.w  #0x91a,%d2
+        add.l   %d2,%d0
+        addi.l  #0x59,%d0
+        move.l  %d6,%d2
+        mulu.w  #6,%d2
+        add.l   %d2,%d0
+        add.l   %d5,%d0
+        moveq   #0,%d2
+        move.b  (0,%a2,%d0.l),%d2
+        cmpi.l  #0xff,%d2
+        beq.s   4f
+        move.l  %d2,%d1
+        moveq   #1,%d3
+4:      move.l  %d4,%d0                 | the value's text: its formatter (P + 0xca + 4 i) or "%d"
+        lsl.l   #2,%d0
+        lea     0xca(%a4),%a0
+        move.l  (0,%a0,%d0.l),%d0
+        beq.s   5f
+        movea.l %d0,%a0
+        move.l  %d1,-(%sp)
+        pea     sg_b3
+        jsr     (%a0)
+        addq.l  #8,%sp
+        bra.s   6f
+5:      move.l  %d1,-(%sp)
+        pea     sg_fsd
+        pea     sg_b3
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+6:      move.l  %d5,%d0                 | d6: x, d7: the text's bottom (from the foot)
+        andi.l  #1,%d0
+        mulu.w  #31,%d0
+        addq.l  #1,%d0
+        cmpi.l  #6,%d4
+        blt.s   7f
+        addi.l  #65,%d0
+7:      move.l  %d0,%d6
+        move.l  %d5,%d0
+        lsr.l   #1,%d0
+        mulu.w  #7,%d0
+        moveq   #18,%d7                 | rows 41-45: 63 - 45
+        sub.l   %d0,%d7
+        lea     SG_SMALL,%a0
+        lea     sg_b2,%a1
+        move.l  %d6,%d0
+        move.l  %d7,%d1
+        move.l  %d3,%d2
+        bsr     sg_tx
+        add.l   %d6,%d0
+        addq.l  #2,%d0
+        move.l  %d0,%d5                 | d5: the value's least x
+9:      lea     SG_SMALL,%a0            | too wide for the cell's rest: its last characters dropped
+        lea     sg_b3,%a1
+        bsr     sg_wid
+        move.l  %d6,%d1
+        addi.l  #30,%d1
+        sub.l   %d5,%d1
+        cmp.l   %d1,%d0
+        ble.s   0f
+        lea     sg_b3,%a0
+1:      tst.b   (%a0)+
+        bne.s   1b
+        subq.l  #2,%a0
+        cmpa.l  #sg_b3,%a0
+        ble.s   0f
+        clr.b   (%a0)
+        bra.s   9b
+0:      lea     SG_SMALL,%a0
+        lea     sg_b3,%a1
+        bsr     sg_wid
+        move.l  %d6,%d1
+        addi.l  #29,%d1
+        sub.l   %d0,%d1
+        cmp.l   %d5,%d1
+        bge.s   8f
+        move.l  %d5,%d1
+8:      move.l  %d1,%d0
+        lea     SG_SMALL,%a0
+        lea     sg_b3,%a1
+        move.l  %d7,%d1
+        move.l  %d3,%d2
+        bsr     sg_tx
+.Lac_x:
+        movem.l (%sp),%d4-%d7
+        lea     16(%sp),%sp
+        rts
+
 | Z clear when a trig key (codes 0x00-0x0f) is down. Uses d1 a0.
 sg_tkd:
         lea     SG_HELD,%a0
@@ -874,6 +1206,8 @@ sg_pkey:
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne.s   8f
+        bsr     sg_apon                 | APGS's panel (build 157): the page key the stock's, the panel's
+        bne.s   8f                      | page; the view stays
         lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
         bsr     sg_mxout
@@ -970,8 +1304,10 @@ sg_vis:
         beq.s   1f
         tst.l   0x80000012              | MIDI mode
         bne.s   2f
-        tst.l   sg_aud                  | audio mode: the AUDIO views' (build 149)
-        beq.s   1f
+        tst.l   sg_aud                  | audio mode: the AUDIO views' (build 149), on any page (build
+        beq.s   1f                      | 157: APGS's panel takes the page keys)
+        cmp.l   %d0,%d0
+        rts
 2:      moveq   #2,%d1
         cmp.l   %d1,%d0
         rts
@@ -3026,6 +3362,7 @@ sg_run:
         beq.s   0f
         bsr     sg_fdots
         bsr     sg_fhdr
+        bsr     sg_apanel               | APGS's panel (build 157)
         bra.s   1f
 0:      bsr     sg_panel
         bsr     sg_tnames               | (after the panel: they are on its edge, build 89)
@@ -6707,6 +7044,12 @@ sg_zfol:
 sg_kenc:
         bsr     sg_free
         bne     8f
+        bsr     sg_apon                 | APGS's panel (build 157): A-F the page's (its knobs, a held
+        beq.s   .Lke_np                 | trig's locks); FUNC + a knob its SETUP's (sg_apfx)
+        tst.l   SG_HELD+0x2d*24
+        bne     sg_apfx
+        bra     8f
+.Lke_np:
         moveq   #2,%d0                  | A B C in AUDIO (build 149): the page under the view is the audio
         cmp.l   4(%sp),%d0              | track's AMP page (audio mode), so only with a trig key down (a
         bcs.s   .Lke_f                  | lock, as the stock's), else nothing; B C in the MIDI views the
@@ -8641,8 +8984,12 @@ sg_fzfit:
         muls.l  %d2,%d4
         add.l   %d4,%d0
         addi.l  #18,%d0
-        moveq   #64,%d1
-        cmp.l   %d1,%d0
+        bsr     sg_apon                 | APGS's panel under the rows (build 157): rows 33-63 are its
+        beq.s   7f
+        moveq   #32,%d1
+        bra.s   6f
+7:      moveq   #64,%d1
+6:      cmp.l   %d1,%d0
         bgt.s   8f
         moveq   #0,%d0
         rts
@@ -13070,6 +13417,14 @@ sg_pkm: .byte   0x33, 0x34, 0x20, 0x21, 0x34, 0x20, 0x21, 0x33, 0 | KEYS: code -
         .balign 4
 sg_tp:  .long   7                       | the timeline's screen-row pitch in use (build 107: 7, or sg_ftpi)
 sg_ftpi: .long  7                       | the full timeline's pitch, knob D: 7-17
+sg_apv1: .long  0, 0                   | APGS's panel: the page's and its SETUP's Part bytes (build 157)
+sg_apsx: .long  -1                      | its held step, -1 none
+sg_ap2e: .long  0x4003a474, 0, 0x4003adec, 0x4003abe4, 0x4003a9dc | the page-2 editors (slot, delta): PLAYBACK, LFO none, AMP, FX1, FX2
+sg_aplf: .byte  0, 3, 0x18, 0x1b       | LFO SETUP's slots in its Part rows (sg_apcell)
+sg_apft: .asciz "%s T%d"
+sg_apfs: .asciz "%s S%02d"
+sg_apsu: .asciz "SETUP"
+        .align  4
 sg_fps: .long   10                      | the full 4-page window's row stride, knob D: 5-28 (10 from build
                                         | 151, Zach; 0 its own fit, 14 / 7, until 150)
 sg_fdy: .long   0                       | sg_fgap's dot row

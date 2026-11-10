@@ -249,6 +249,15 @@ LEDs in grid recording, FUNC + BANK's track settings, and holding a trig to lock
 under the view is AMP, so a held trig with knobs A-C locks AMP values; without a trig held, knobs A-C
 do nothing here (they would change AMP settings you can't see).
 
+**Audio Pages: the page panel.** In Pages with the audio tracks (and the arranger off), the bottom
+half shows the cursor's audio track's page: its six values on the left and that page's SETUP on the
+right. The page keys (PLAYBACK, AMP, LFO, FX1, FX2) pick the page; leave the view with NO or MIXER +
+MIDI. Knobs A-F change the values; hold a trig to lock them on that step (a locked value is
+highlighted). FUNC + knob changes the SETUP value.
+
+![Audio Pages with the AMP panel](docs/screens/apgs-panel.png)
+*AMP on the left, AMP SETUP on the right, for audio track 1.*
+
 ### Track names
 
 Each MIDI track can have a 12-character name, per Part and bank. Set it on the name line in the Split

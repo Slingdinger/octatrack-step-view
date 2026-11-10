@@ -1845,8 +1845,7 @@ sg_lhid:
 2:      moveq   #4,%d0
         cmp.l   %d0,%d3
         bne.s   8f
-        bsr     sg_adirty
-        beq.s   9f
+        bra.s   9f                      | SAVE: not shown since build 154 (the note block is there)
 8:      moveq   #0,%d0
         rts
 9:      moveq   #1,%d0
@@ -2847,11 +2846,11 @@ sg_run:
         sub.l   %d1,%d0
         lsr.l   #4,%d0
         add.l   #49,%d0
-        bsr     sg_tmut                 | the cursor's track muted in the row: M in turn (build 75; the
-        beq.s   4f                      | row's own mutes, build 81)
+        bsr     sg_tmut                 | the cursor's track muted in the row: M, blinking (build 75; the
+        beq     3f                      | row's own mutes, build 81); no page number (build 154, Zach)
         moveq   #32,%d1                 | (bit 5, build 76)
         and.l   sg_mbk,%d1
-        beq.s   4f
+        beq     3f
         moveq   #77,%d0
 4:      lea     sg_b2,%a1
         move.b  %d0,(%a1)
@@ -5051,6 +5050,7 @@ sg_panel:
         moveq   #50,%d1
         bsr     sg_tx
 1:
+        bsr     sg_ckdraw               | the time, at the panel's foot (build 154; top left 88-153)
         tst.l   sg_umt                  | an undo / redo just now: its message at the panel's top, inverted,
         ble.s   1f                      | the whole line its own
         lea     SG_SMALL,%a0
@@ -5060,41 +5060,11 @@ sg_panel:
         lea     sg_umsg,%a1
         bsr     sg_tx
         bra     2f
-1:      bsr     sg_ckdraw               | else the time in the top-left corner (build 88; line 3 in 82-87),
-        moveq   #57,%d5                 | the row against the divider and the step count left of it (the
-        bsr     sg_arr                  | count top left in 73-87): d5 the count's right edge
-        tst.l   %d1
-        bmi.s   5f
+1:      bsr     sg_arr                  | the row against the divider (build 154: the step count left of it
+        tst.l   %d1                     | and the time gone from the top line)
+        bmi.s   2f
         moveq   #57,%d1
         bsr     sg_rowtx
-        move.l  %d0,%d5
-        subq.l  #3,%d5
-5:      bsr     sg_mstep                | the step playing; stopped, the cursor's step (build 75: "--"
-        move.l  %d1,%d4                 | before)
-        bpl.s   4f
-        move.l  sg_step,%d4
-4:      addq.l  #1,%d4
-        lea     sg_f3c,%a0
-        move.l  %d4,-(%sp)
-        move.l  %d4,-(%sp)
-        tst.l   %d4
-        bne.s   3f
-        lea     sg_f3d,%a0              | --
-3:      move.l  %a0,-(%sp)
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     16(%sp),%sp
-        lea     SG_SMALL,%a0
-        lea     sg_b1,%a1
-        bsr     sg_wid
-        move.l  %d5,%d1
-        sub.l   %d0,%d1
-        move.l  %d1,%d0
-        lea     SG_SMALL,%a0
-        moveq   #57,%d1
-        moveq   #0,%d2
-        lea     sg_b1,%a1
-        bsr     sg_tx
 2:      bsr     sg_arr                  | the page / pages (the longest track's), "1/4", at the first row's
         tst.l   %d1                     | far right (build 70), but not in the 4-page window while arranging
         bmi.s   1f
@@ -5297,14 +5267,14 @@ sg_panel:
         move.l  %d2,%d3                 | d3: picked
         tst.l   sg_tl2
         beq.s   9f
-        tst.l   %d7                     | the timeline's: from x 12 (the infinity alone repeating)
-        bne.s   8f
+        tst.l   %d7                     | the timeline's: from x 36 (the infinity alone repeating; x 12
+        bne.s   8f                      | until 153, under the note block's octaves since 154)
         lea     SG_SMALL,%a0
-        moveq   #12,%d0
+        moveq   #36,%d0
         moveq   #43,%d1
         lea     sg_b1,%a1
         bsr     sg_tx
-        moveq   #12,%d0
+        moveq   #36,%d0
         bra.s   7f
 9:      moveq   #43,%d1                 | line 2, rows 16-20
         bsr     sg_rlin2
@@ -5335,30 +5305,17 @@ sg_panel:
         moveq   #56,%d2
         moveq   #21,%d3
         bsr     sg_clr
-8:      tst.l   sg_tl2                  | the timeline repeating: the infinity at x 12
+8:      tst.l   sg_tl2                  | the timeline repeating: the infinity at x 29 (12 until 153)
         beq.s   9f
         tst.l   %d7
         beq.s   9f
-        moveq   #12,%d0
+        moveq   #29,%d0
         bsr     sg_inf
 9:
 .Lsg_l2x:
 
-        bsr     sg_adirty               | line 3: SAVE, the arrangement unsaved (build 78; empty in 73-77):
-        beq.s   1f                      | YES there saves it (the ARR menu's SAVE)
-        moveq   #SG_PV,%d0
-        bsr     sg_hl
-        lea     sg_fsv,%a1
-        lea     SG_SMALL,%a0
-        moveq   #SG_SVX+2,%d0
-        moveq   #36,%d1
-        bsr     sg_tx
-        moveq   #SG_SVX,%d0             | its button's outline, rows 22-28, over STEP (build 100; against
-        moveq   #22,%d1                 | the divider in 82-99, at the panel's left before)
-        moveq   #SG_SVX+20,%d2
-        moveq   #28,%d3
-        lea     SG_RECT,%a0
-        bsr     sg_r1
+                                        | (line 3, SAVE, not drawn since build 154: the note block sits
+                                        | there; the ARR menu's SAVE as ever)
 1:      move.l  sg_step,%d0             | STEP nn (in the panel too, build 55)
         addq.l  #1,%d0
         move.l  %d0,-(%sp)
@@ -5370,7 +5327,7 @@ sg_panel:
         bsr     sg_hl
         lea     SG_SMALL,%a0
         moveq   #SG_PX,%d0
-        moveq   #29,%d1                 | line 4, rows 30-34
+        moveq   #57,%d1                 | line 1, rows 2-6 (rows 30-34 until 153)
         lea     sg_b1,%a1
         bsr     sg_tx
 
@@ -5418,7 +5375,7 @@ sg_panel:
         lsl.l   #3,%d1
         adda.l  %d1,%a1
         move.l  %d6,%d0
-        moveq   #15,%d1                 | line 6, rows 44-48
+        moveq   #43,%d1                 | rows 16-20 (44-48 until 153)
         moveq   #0,%d2
         bsr     sg_tx
         lea     SG_SMALL,%a0            | the name
@@ -5427,7 +5384,7 @@ sg_panel:
         lsl.l   #3,%d1
         adda.l  %d1,%a1
         move.l  %d6,%d0
-        moveq   #22,%d1                 | line 5, rows 37-41
+        moveq   #50,%d1                 | rows 9-13 (37-41 until 153)
         moveq   #0,%d2
         bsr     sg_tx
         move.l  %d4,%d0                 | picked: the slot inverted, both rows
@@ -5437,10 +5394,10 @@ sg_panel:
         beq.s   2f
         move.l  %d6,%d0
         subq.l  #1,%d0
-        moveq   #36,%d1                 | lines 5 and 6 whole, rows 36-49
+        moveq   #8,%d1                  | both lines whole, rows 8-21
         move.l  %d6,%d2
         addq.l  #6,%d2
-        moveq   #49,%d3
+        moveq   #21,%d3
         bsr     sg_inv
 2:      addq.l  #8,%d6
         addq.l  #1,%d4
@@ -5458,12 +5415,12 @@ sg_panel:
         move.w  #0x5600,(%a1)           | "V"
         lea     SG_SMALL,%a0
         moveq   #SG_PX,%d0
-        moveq   #8,%d1                  | line 7, rows 51-55
+        moveq   #36,%d1                 | rows 23-27 (51-55 until 153)
         moveq   #0,%d2
         bsr     sg_tx                   | d0: its width
         addq.l  #SG_PX+2,%d0
         lea     SG_SMALL,%a0
-        moveq   #8,%d1
+        moveq   #36,%d1
         moveq   #0,%d2
         lea     sg_pvb,%a1
         bsr     sg_tx
@@ -5472,9 +5429,9 @@ sg_panel:
         tst.l   %d2
         beq.s   1f
         moveq   #0,%d0
-        moveq   #50,%d1
-        moveq   #57,%d2
-        moveq   #56,%d3
+        moveq   #22,%d1
+        moveq   #34,%d2                 | (to x 34: the pattern cues sit right of it, build 154)
+        moveq   #28,%d3
         bsr     sg_inv
 1:
         moveq   #2,%d0                  | LEN, a line below: its value 0-127 and its subdivision,
@@ -5521,7 +5478,7 @@ sg_panel:
         move.w  #0x4c00,(%a1)           | "L"
         lea     SG_SMALL,%a0
         moveq   #SG_PX,%d0
-        moveq   #1,%d1                  | line 8, rows 58-62
+        moveq   #29,%d1                 | rows 30-34 (58-62 until 153)
         moveq   #0,%d2
         bsr     sg_tx                   | d0: its width
         move.l  %d0,%d6
@@ -5529,7 +5486,7 @@ sg_panel:
         moveq   #SG_PX,%d0
         add.l   %d6,%d0
         lea     SG_SMALL,%a0
-        moveq   #1,%d1
+        moveq   #29,%d1
         moveq   #0,%d2
         lea     sg_b2,%a1
         bsr     sg_tx
@@ -5556,7 +5513,7 @@ sg_panel:
         cmp.l   %d1,%d0
         bgt.s   4f
 7:      lea     SG_SMALL,%a0
-        moveq   #1,%d1
+        moveq   #29,%d1
         moveq   #0,%d2
         movea.l %d5,%a1
         bsr     sg_tx
@@ -5565,9 +5522,9 @@ sg_panel:
         tst.l   %d2
         beq.s   5f
         moveq   #0,%d0
-        moveq   #57,%d1
+        moveq   #29,%d1
         moveq   #57,%d2
-        moveq   #63,%d3
+        moveq   #35,%d3
         bsr     sg_inv
 5:
         movem.l (%sp),%d2-%d7/%a2-%a5
@@ -12741,7 +12698,7 @@ sg_ckdraw:
         lea     16(%sp),%sp
         lea     SG_SMALL,%a0
         moveq   #SG_PX+1,%d0
-        moveq   #57,%d1
+        moveq   #1,%d1                  | rows 58-62 (build 154)
         moveq   #0,%d2
         lea     sg_b1,%a1
         bsr     sg_tx

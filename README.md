@@ -162,20 +162,21 @@ The screen split in two: the grid on the right, and on the left a column of valu
 notes, velocity and length, the track's name, the play clock and the patterns). It was designed as the arranger's companion:
 
 - **Arranger on**: the timeline, plus the arrangement controls. You can see and change the row
-  playing, the pattern of this row and the next, mute the row, and save the arrangement (a SAVE
-  button appears when there are changes).
+  playing and the pattern of this row and the next, and mute the row. Each pattern's cue sits on the
+  left at the row where it starts. Save the arrangement from the ARR menu.
 - **Arranger off**: the 8 tracks, plus the step's details and the track names.
 
 **Arranger off**
 
 ![Split view, arranger off](docs/screens/panel.png)
-*The step's notes, velocity and length on the left, the 8 tracks on the right.*
+*The step's notes, velocity and length at the top left, the play clock at the bottom, the 8 tracks on the right.*
 
 **Arranger on**
 
 ![Split view, arranger on](docs/screens/panel-arranger.png)
-*ROW 00 is the row playing. M A03 is this row's mute and pattern; -- A01 is the next row's pattern
-(the -- becomes a countdown while playing). The timeline is on the right.*
+*Playing an arrangement: ROW 00 is the row playing. M ▶A03 is this row's mute and pattern; 2 A02 is
+the next row's pattern (2 = its repeats), and A04 and A03 further down mark where those rows start.
+The step's values are at the top left, the clock at the bottom. The timeline is on the right.*
 
 It follows the arranger: turn the arranger on or off and the Split view switches with it.
 

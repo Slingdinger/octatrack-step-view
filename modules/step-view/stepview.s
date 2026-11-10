@@ -1408,7 +1408,9 @@ sg_mv:
         moveq   #63,%d0
         and.l   %d0,sg_step
         bra     6f
-0:      bsr     sg_zset                 | the column (of 16, or the zoom's, build 84)
+0:      move.l  %d1,-(%sp)              | (sg_zset uses d1: LEFT moved right here, build 156)
+        bsr     sg_zset                 | the column (of 16, or the zoom's, build 84)
+        move.l  (%sp)+,%d1
         move.l  sg_zn,%d0
         subq.l  #1,%d0
         and.l   sg_step,%d0

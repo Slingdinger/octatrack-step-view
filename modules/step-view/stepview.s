@@ -1313,7 +1313,36 @@ sg_mv:
         beq.s   .Lsg_udn
         bsr     sg_tmvv
         bra     6f
-.Lsg_udn:
+.Lsg_udn:                               | zoomed in (4 / 8 a row: a page over 2 or 4 screen rows), a
+        moveq   #1,%d1                  | screen row: the column sg_tcn on, the page's next or last
+        cmp.l   sg_tm,%d1               | segment, or the page after / before (build 155, Zach: zoom 8
+        bge.s   .Lsg_ud1                | went 16 steps a press)
+        move.l  sg_tcn,%d1
+        tst.l   %d0
+        bpl.s   0f
+        neg.l   %d1
+0:      add.l   sg_tcol,%d1
+        bmi.s   .Lsg_udu
+        cmpi.l  #16,%d1
+        bge.s   .Lsg_udd
+        move.l  %d1,sg_tcol             | the same page
+        bsr     sg_tupd
+        bra     6f
+.Lsg_udu:
+        addi.l  #16,%d1                 | the page before, its last segment
+        bra.s   .Lsg_udp
+.Lsg_udd:
+        subi.l  #16,%d1                 | the page after, its first
+.Lsg_udp:
+        move.l  %d1,-(%sp)
+        bsr     sg_tmv
+        move.l  (%sp)+,%d1
+        tst.l   %d0
+        beq     6f
+        move.l  %d1,sg_tcol
+        bsr     sg_tupd
+        bra     6f
+.Lsg_ud1:
         bsr     sg_tmv
         bra     6f
 0:      move.l  sg_zn,%d0               | the 4-page window: a row (16 steps; the zoom's, build 84)

@@ -26,7 +26,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | **YES** | Put a note on the step (or open it if there's one already). |
 | **FUNC + PLAY** | Clear the step. |
 | **FUNC + NO** | Undo. **FUNC + YES** redoes. |
-| Press **encoder F** | Zoom in or out (Tracks, Pages), or switch the piano-roll layout (Pitch). |
+| Press **encoder D** | Zoom in or out (Tracks, Pages), or switch the piano-roll layout (Pitch). |
 | **NO** | Back out: closes whatever is open, and from the grid, leaves STEP VIEW. |
 
 Leaving from the MIDI tracks takes you back to the page you were on, in the mode you were in (MIDI or
@@ -55,7 +55,7 @@ All 8 MIDI tracks, one row each. The title says **MIDI** (or **AUD** for the aud
 *32 steps a row (the default).*
 
 ![Tracks, 16 steps a row](docs/screens/tracks-16.png)
-*16 steps a row: press encoder F.*
+*16 steps a row: press encoder D.*
 
 ![Tracks while playing](docs/screens/tracks-playing.png)
 *Playing: the play position is marked on every track.*
@@ -94,7 +94,7 @@ The cursor's track, its four pages stacked. Use it to see a whole long track at 
 *32 steps a row: two pages per row.*
 
 ![Pages, 16 steps a row](docs/screens/pages-16.png)
-*16 steps a row: one page per row. Press encoder F to switch.*
+*16 steps a row: one page per row. Press encoder D to switch.*
 
 - The bar under the title shows the pattern (A03) and the track's length (64).
 - **Knob D** changes the spacing between the rows.
@@ -118,12 +118,12 @@ before the next row.
 
 ## 3. Pitch: a piano roll
 
-The cursor's track as notes on a keyboard, for writing melodies and bass lines. **Press encoder F** to
+The cursor's track as notes on a keyboard, for writing melodies and bass lines. **Press encoder D** to
 switch between three layouts. They all show the same notes and keep the same range. The arranger
 doesn't change this view.
 
 ![Pitch, ROLL 16](docs/screens/pitch-roll16.png)
-*ROLL 16: one page of 16 steps, a keyboard on the left. Press encoder F for the next layout.*
+*ROLL 16: one page of 16 steps, a keyboard on the left. Press encoder D for the next layout.*
 
 ![Pitch, ROLL 32](docs/screens/pitch-roll32.png)
 *ROLL 32: two pages across two octaves.*
@@ -193,15 +193,15 @@ parameter lock on that step). **NO** goes back to the grid.
 
 ---
 
-## Encoder F: press it to change how the view looks
+## Encoder D: press it to change how the view looks
 
-Press **encoder F** in any view to change how it's shown. Turning F does nothing in STEP VIEW.
+Press **encoder D** in any view to change how it's shown. In Pages, turning D sets the row spacing (10 to start).
 
 While STEP VIEW is open, a knob it doesn't use does nothing, turned or pressed. The page under the view
 (the MIDI ARP page, or AMP in AUDIO) can't be changed unseen. With a trig key held, the knobs lock
 values on that step as usual.
 
-| View | Press F |
+| View | Press D |
 |---|---|
 | **Tracks** | Zoom: 16 ↔ 32 steps a row |
 | **Pages** | Zoom: 16 ↔ 32 steps a row |
@@ -294,9 +294,8 @@ it.
   too: it closes what's open, and from the grid it leaves.
 - **FUNC + PLAY to clear.** That's the Octatrack's own CLEAR combo. Undo (FUNC + NO) is there if you
   clear the wrong thing.
-- **Press F to change the view.** One action does the same kind of thing everywhere: zoom in Tracks,
-  Pages and the timeline, the layout in Pitch. Turning F does nothing, so a knob bump can't change
-  the screen.
+- **Press D to change the view.** One action does the same kind of thing everywhere: zoom in Tracks,
+  Pages and the timeline, the layout in Pitch.
 - **The track number for whole-track actions.** The number is already the track's label, so putting
   the cursor on it means "this whole track", the same way the cursor on a step means "this step".
 - **The Split view for the arranger.** The arranger is the part of the Octatrack that's hardest to

@@ -10767,12 +10767,31 @@ sg_pfk:
 | "turn F" a "press F"): PITCH the next layout (sg_pfk); TRKS and PAGES the zoom, 16 <-> 32 a row; the
 | panel view's timeline 4 -> 8 -> 16 -> 4 a row (both through sg_kenc's F, sg_fkx set); the panel view's
 | 8 tracks nothing. A menu, popup, window of ours or the name's keyboard: the stock's handler.
+| Build 153 (Zach: "move all the encoder F clicks to encoder D"): this work is encoder D's press now
+| (sg_dkp); F's press does nothing in the view, as A-C and E's (sg_ekp).
 sg_fkp:
         bsr     sg_free
         bne     8f
         tst.l   sg_win
         bne     8f
         tst.l   sg_kb
+        bne     8f
+        bsr     sg_tkd                  | a trig key down: the stock's
+        bne     8f
+        rts
+8:      movea.l sg_fksv,%a0
+        jmp     (%a0)
+
+| Encoder D pressed in the view (build 153): what F's press did in 143-152 (above). A menu, popup, window
+| of ours, the name's keyboard or a trig key down: D's stock handler (sg_eksv + 12).
+sg_dkp:
+        bsr     sg_free
+        bne     8f
+        tst.l   sg_win
+        bne     8f
+        tst.l   sg_kb
+        bne     8f
+        bsr     sg_tkd
         bne     8f
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
@@ -10802,7 +10821,7 @@ sg_fkp:
         addq.l  #8,%sp
         clr.l   sg_fkx
 9:      rts
-8:      movea.l sg_fksv,%a0
+8:      movea.l sg_eksv+12,%a0
         jmp     (%a0)
 
 | Encoder F's press ours in the key table while the view is up (sg_poll; the stock's kept in sg_fksv),
@@ -10832,8 +10851,7 @@ sg_ek1: movea.w #1,%a1
         bra.s   sg_ekp
 sg_ek2: movea.w #2,%a1
         bra.s   sg_ekp
-sg_ek3: movea.w #3,%a1
-        bra.s   sg_ekp
+sg_ek3: bra     sg_dkp                  | D: F's old work (build 153)
 sg_ek4: movea.w #4,%a1
 sg_ekp:
         move.l  %a1,-(%sp)
@@ -13064,7 +13082,8 @@ sg_pkm: .byte   0x33, 0x34, 0x20, 0x21, 0x34, 0x20, 0x21, 0x33, 0 | KEYS: code -
         .balign 4
 sg_tp:  .long   7                       | the timeline's screen-row pitch in use (build 107: 7, or sg_ftpi)
 sg_ftpi: .long  7                       | the full timeline's pitch, knob D: 7-17
-sg_fps: .long   0                       | the full 4-page window's row stride, knob D: 0 its own (14)
+sg_fps: .long   10                      | the full 4-page window's row stride, knob D: 5-28 (10 from build
+                                        | 151, Zach; 0 its own fit, 14 / 7, until 150)
 sg_fdy: .long   0                       | sg_fgap's dot row
 sg_fd0: .long   0                       | sg_fgap's dots' rows (build 114)
 sg_fd1: .long   0

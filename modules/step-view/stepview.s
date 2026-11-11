@@ -416,7 +416,7 @@ sg_apanel:
         rts
 0:      lea     -44(%sp),%sp
         movem.l %d0-%d7/%a2-%a4,(%sp)
-        moveq   #0,%d0                  | rows 32-63 clear, a line at 32, a dotted one down x 63
+        moveq   #0,%d0                  | rows 32-63 clear, a line at 32
         moveq   #32,%d1
         moveq   #127,%d2
         moveq   #63,%d3
@@ -427,86 +427,59 @@ sg_apanel:
         moveq   #32,%d3
         lea     SG_FILL,%a0
         bsr     sg_r1
-        moveq   #34,%d4
-1:      moveq   #63,%d0
-        move.l  %d4,%d1
-        moveq   #63,%d2
-        move.l  %d4,%d3
-        lea     SG_FILL,%a0
-        bsr     sg_r1
-        addq.l  #2,%d4
-        moveq   #63,%d0
-        cmp.l   %d0,%d4
-        ble.s   1b
-        moveq   #7,%d7                  | d7: the track
-        and.l   sg_row,%d7
-        move.l  0x460d1684,%d6          | d6: the page (0-4)
-        moveq   #4,%d0
-        cmp.l   %d0,%d6
-        bls.s   1f
-        moveq   #2,%d6
-1:      move.l  %d6,-(%sp)              | a4: its descriptor
-        move.l  %d7,-(%sp)
-        jsr     0x40031da4
-        addq.l  #8,%sp
-        tst.l   %d0
-        beq     .Lap_x
-        movea.l %d0,%a4
-        movea.l 0x46c82456,%a3          | a3: Part' (the bank + 0x8ed80 + part x 6322)
-        adda.l  #0x8ed80,%a3
-        moveq   #0,%d0
-        move.b  0x100b14cf,%d0
-        move.l  #6322,%d1
-        muls.l  %d1,%d0
-        adda.l  %d0,%a3
-        moveq   #0,%d5                  | d5: the machine
-        move.b  (0x22,%a3,%d7.l),%d5
-        lea     sg_apv1,%a0             | the page's two value rows' addresses
-        move.l  %d7,%d0
-        moveq   #30,%d1
-        muls.l  %d1,%d0                 | t x 30
-        move.l  %d5,%d1
-        mulu.w  #6,%d1                  | machine x 6
-        tst.l   %d6
-        bne.s   2f
-        move.l  %a3,%d2                 | PLAYBACK: + 0x2a / + 0x1da, + t x 30 + machine x 6
-        add.l   %d0,%d2
-        add.l   %d1,%d2
-        move.l  %d2,%d3
-        addi.l  #0x2a,%d2
-        addi.l  #0x1da,%d3
-        bra.s   3f
-2:      move.l  %d7,%d2                 | the others: + 0x11a + t x 24 + (page - 1) x 6; page 2 + 0x2f2
-        mulu.w  #24,%d2                 | + t x 30 + (page - 1) x 6
-        move.l  %d6,%d1
-        subq.l  #1,%d1
-        mulu.w  #6,%d1
-        add.l   %d1,%d2
-        add.l   %a3,%d2
-        addi.l  #0x11a,%d2
-        move.l  %a3,%d3
-        add.l   %d0,%d3
-        add.l   %d1,%d3
-        addi.l  #0x2f2,%d3
-3:      move.l  %d2,(%a0)
-        move.l  %d3,4(%a0)
-        moveq   #-1,%d0                 | a trig key held: its step's locks (the page's 6 slots)
-        move.l  %d0,sg_apsx
-        bsr     sg_apkey
-        bmi.s   4f
-        move.l  %d0,sg_apsx
-4:      bsr     sg_aphdr
-        moveq   #0,%d4                  | d4: the value, 0-11
-.Lap_l:
-        bsr     sg_apcell
-        addq.l  #1,%d4
-        moveq   #12,%d0
-        cmp.l   %d0,%d4
-        blt.s   .Lap_l
-.Lap_x:
+        moveq   #0,%d7                  | (build 162) the cursor step's locks in the lock window's five
+        tst.l   SG_HELD+0x2d*24         | columns, three lines (rows 35-53, "+n" past them), the names on
+        beq.s   1f                      | rows 58-62, the stock's page's column inverted; FUNC: the values
+        moveq   #1,%d7
+1:      move.l  0x460d1684,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bls.s   2f
+        moveq   #2,%d0
+2:      bsr     sg_lkpg                 | (the column of a page: the same swap)
+        move.l  %d0,sg_lkhc
+        moveq   #-1,%d0
+        move.l  %d0,sg_lkhr
+        moveq   #24,%d0
+        move.l  %d0,sg_lky0
+        moveq   #3,%d0
+        move.l  %d0,sg_lknr
+        moveq   #1,%d0
+        move.l  %d0,sg_lkfy
+        bsr     sg_lkcol
+        moveq   #2,%d0                  | the dotted lines: over the names, the dividers
+        moveq   #56,%d1
+        moveq   #2,%d2
+        moveq   #0,%d3
+        moveq   #62,%d4
+        bsr     sg_lkdot
+        moveq   #26,%d5
+3:      move.l  %d5,%d0
+        moveq   #34,%d1
+        moveq   #0,%d2
+        moveq   #2,%d3
+        moveq   #15,%d4
+        bsr     sg_lkdot
+        moveq   #25,%d0
+        add.l   %d0,%d5
+        moveq   #101,%d0
+        cmp.l   %d0,%d5
+        ble.s   3b
         movem.l (%sp),%d0-%d7/%a2-%a4
         lea     44(%sp),%sp
         rts
+
+| A knob in APGS without a trig held (sg_kenc's frame; build 162): the lock window's knob on the stock's
+| page's column -- that parameter locked on the cursor's step.
+sg_apke:
+        move.l  0x460d1684,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bls.s   1f
+        moveq   #2,%d0
+1:      bsr     sg_lkpg
+        move.l  %d0,sg_lkc
+        bra     sg_lkenc
 
 | d0 = the first trig key down's step on the trig keys' page (0x460d1e04), -1 none (flags). Uses d0 d1 a0.
 sg_apkey:
@@ -2144,7 +2117,7 @@ sg_lvl:
         tst.l   SG_HELD+0x2d*24         | LEN: alone through its subdivisions (the next one past the
         bne.s   4f                      | value either way), with FUNC by one (build 80; the other way
         move.l  16+8(%sp),%d1           | round in 79)
-        bsr     sg_lstep
+        jsr     sg_lstep
         bra.s   1f
 4:      add.l   16+8(%sp),%d0           | + delta
         bpl.s   1f
@@ -7227,10 +7200,12 @@ sg_kenc:
         cmp.l   sg_win,%d0
         beq     sg_lkenc
         bsr     sg_apon                 | APGS's panel (build 157): A-F the page's (its knobs, a held
-        beq.s   .Lke_np                 | trig's locks); FUNC + a knob its SETUP's (sg_apfx)
+        beq.s   .Lke_np                 | trig's locks); FUNC + a knob its SETUP's (sg_apfx, 157-161)
+        bsr     sg_tkd                  | (build 162: a held trig the stock's; FUNC nothing; else the
+        bne     8f                      | cursor step's lock, sg_apke)
         tst.l   SG_HELD+0x2d*24
-        bne     sg_apfx
-        bra     8f
+        bne     .Lke_eat
+        bra     sg_apke
 .Lke_np:
         moveq   #2,%d0                  | A B C in AUDIO (build 149): the page under the view is the audio
         cmp.l   4(%sp),%d0              | track's AMP page (audio mode), so only with a trig key down (a
@@ -8929,6 +8904,146 @@ sg_lkdot:
         lea     20(%sp),%sp
         rts
 
+| The columns (build 162, from sg_lkdraw for its window and sg_apanel for APGS's panel): d7 1 the values
+| (FUNC), sg_lky0 the first line's bottom (from the foot, 7 rows a line), sg_lknr lines at most (the last
+| "+n" when more), sg_lkfy the names' bottom, sg_lkhc the column whose name is inverted, sg_lkhr its line
+| inverted (-1 none). The cursor's step. Keeps everything.
+sg_lkcol:
+        lea     -56(%sp),%sp
+        movem.l %d0-%d7/%a0-%a5,(%sp)
+        bsr     sg_sel
+        movea.l %a2,%a5                 | a5: the locks
+        moveq   #0,%d6                  | d6: the column
+.Llk_c: move.l  %d6,%d3                 | d3: its x (2 + 25 c)
+        mulu.w  #25,%d3
+        addq.l  #2,%d3
+        move.l  %d6,%d0                 | its name along the foot, inverted when picked
+        mulu.w  #5,%d0
+        lea     sg_lkcn,%a1
+        tst.l   sg_aud
+        bne.s   0f
+        lea     sg_lkcm,%a1             | (MIDI: NOTE ARP LFO CTL1 CTL2, build 160)
+0:      adda.l  %d0,%a1
+        moveq   #0,%d2
+        cmp.l   sg_lkhc,%d6
+        bne.s   1f
+        moveq   #1,%d2
+1:      move.l  %d3,%d0
+        move.l  sg_lkfy,%d1
+        bsr     sg_lkcen
+        move.l  %d6,%d0
+        bsr     sg_lkpg
+        movea.l %d0,%a3                 | a3: the page
+        move.l  %d0,-(%sp)
+        bsr     sg_lktk
+        move.l  %d0,-(%sp)
+        jsr     0x40031da4
+        addq.l  #8,%sp
+        tst.l   %d0
+        beq     .Llk_n
+        movea.l %d0,%a4                 | a4: the descriptor
+        moveq   #0,%d5                  | d5: the parameter, d4: the row
+        moveq   #0,%d4
+.Llk_p: move.l  %a3,%d0
+        mulu.w  #6,%d0
+        add.l   %d5,%d0
+        moveq   #0,%d1
+        move.b  (0,%a5,%d0.l),%d1
+        cmpi.l  #0xff,%d1
+        beq     .Llk_q
+        move.l  sg_lknr,%d0             | the last line with more locks to come: "+n" (build 162)
+        subq.l  #1,%d0
+        cmp.l   %d0,%d4
+        bne.s   .Llk_v
+        move.l  %d6,%d0
+        moveq   #0,%d1
+        bsr     sg_lkat
+        cmp.l   sg_lknr,%d1
+        ble.s   .Llk_r
+        sub.l   %d4,%d1
+        move.l  %d1,-(%sp)
+        pea     sg_lkpl
+        pea     sg_b3
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        moveq   #0,%d2
+        bra     .Llk_y
+.Llk_r: move.l  %a3,%d0                 | (the value again)
+        mulu.w  #6,%d0
+        add.l   %d5,%d0
+        moveq   #0,%d1
+        move.b  (0,%a5,%d0.l),%d1
+.Llk_v:
+        tst.l   %d7
+        bne.s   2f
+        move.l  %d5,%d0                 | the name (5 characters at most)
+        mulu.w  #6,%d0
+        lea     (0x16,%a4,%d0.l),%a0
+        lea     sg_b3,%a1
+        moveq   #5,%d0
+1:      move.b  (%a0)+,(%a1)+
+        subq.l  #1,%d0
+        bne.s   1b
+        clr.b   (%a1)
+        bra.s   5f
+2:      move.l  %d5,%d0                 | the value: the formatter (P + 0xca + 4 i) or "%d"
+        lsl.l   #2,%d0
+        lea     0xca(%a4),%a0
+        move.l  (0,%a0,%d0.l),%d0
+        beq.s   3f
+        movea.l %d0,%a0
+        move.l  %d1,-(%sp)
+        pea     sg_b3
+        jsr     (%a0)
+        addq.l  #8,%sp
+        bra.s   4f
+3:      move.l  %d1,-(%sp)
+        pea     sg_fsd
+        pea     sg_b3
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+4:      lea     SG_SMALL,%a0            | cut to the column's 24 px
+        lea     sg_b3,%a1
+        bsr     sg_wid
+        moveq   #24,%d1
+        cmp.l   %d1,%d0
+        ble.s   5f
+        lea     sg_b3,%a0
+6:      tst.b   (%a0)+
+        bne.s   6b
+        subq.l  #2,%a0
+        cmpa.l  #sg_b3,%a0
+        ble.s   5f
+        clr.b   (%a0)
+        bra.s   4b
+5:      moveq   #0,%d2                  | the picked lock inverted
+        cmp.l   sg_lkhc,%d6
+        bne.s   .Llk_y
+        cmp.l   sg_lkhr,%d4
+        bne.s   .Llk_y
+        moveq   #1,%d2
+.Llk_y: move.l  sg_lky0,%d1             | its line, 7 rows apart
+        move.l  %d4,%d0
+        mulu.w  #7,%d0
+        sub.l   %d0,%d1
+        move.l  %d3,%d0
+        lea     sg_b3,%a1
+        bsr     sg_lkcen
+        addq.l  #1,%d4
+        cmp.l   sg_lknr,%d4
+        bge     .Llk_n
+.Llk_q: addq.l  #1,%d5
+        moveq   #6,%d0
+        cmp.l   %d0,%d5
+        blt     .Llk_p
+.Llk_n: addq.l  #1,%d6
+        moveq   #5,%d0
+        cmp.l   %d0,%d6
+        blt     .Llk_c
+        movem.l (%sp),%d0-%d7/%a0-%a5
+        lea     56(%sp),%sp
+        rts
+
 | The window (from sg_run, the whole screen). Uses nothing (all kept).
 sg_lkdraw:
         lea     -56(%sp),%sp
@@ -8990,108 +9105,17 @@ sg_lkdraw:
         moveq   #57,%d1
         moveq   #0,%d2
         bsr     sg_tx
-        moveq   #0,%d6                  | d6: the column
-.Llk_c: move.l  %d6,%d3                 | d3: its x (2 + 25 c)
-        mulu.w  #25,%d3
-        addq.l  #2,%d3
-        move.l  %d6,%d0                 | its name along the foot, inverted when picked
-        mulu.w  #5,%d0
-        lea     sg_lkcn,%a1
-        tst.l   sg_aud
-        bne.s   0f
-        lea     sg_lkcm,%a1             | (MIDI: NOTE ARP LFO CTL1 CTL2, build 160)
-0:      adda.l  %d0,%a1
-        moveq   #0,%d2
-        cmp.l   sg_lkc,%d6
-        bne.s   1f
-        moveq   #1,%d2
-1:      move.l  %d3,%d0
-        moveq   #3,%d1
-        bsr     sg_lkcen
-        move.l  %d6,%d0
-        bsr     sg_lkpg
-        movea.l %d0,%a3                 | a3: the page
-        move.l  %d0,-(%sp)
-        bsr     sg_lktk
-        move.l  %d0,-(%sp)
-        jsr     0x40031da4
-        addq.l  #8,%sp
-        tst.l   %d0
-        beq     .Llk_n
-        movea.l %d0,%a4                 | a4: the descriptor
-        moveq   #0,%d5                  | d5: the parameter, d4: the row
-        moveq   #0,%d4
-.Llk_p: move.l  %a3,%d0
-        mulu.w  #6,%d0
-        add.l   %d5,%d0
-        moveq   #0,%d1
-        move.b  (0,%a5,%d0.l),%d1
-        cmpi.l  #0xff,%d1
-        beq     .Llk_q
-        tst.l   %d7
-        bne.s   2f
-        move.l  %d5,%d0                 | the name (5 characters at most)
-        mulu.w  #6,%d0
-        lea     (0x16,%a4,%d0.l),%a0
-        lea     sg_b3,%a1
-        moveq   #5,%d0
-1:      move.b  (%a0)+,(%a1)+
-        subq.l  #1,%d0
-        bne.s   1b
-        clr.b   (%a1)
-        bra.s   5f
-2:      move.l  %d5,%d0                 | the value: the formatter (P + 0xca + 4 i) or "%d"
-        lsl.l   #2,%d0
-        lea     0xca(%a4),%a0
-        move.l  (0,%a0,%d0.l),%d0
-        beq.s   3f
-        movea.l %d0,%a0
-        move.l  %d1,-(%sp)
-        pea     sg_b3
-        jsr     (%a0)
-        addq.l  #8,%sp
-        bra.s   4f
-3:      move.l  %d1,-(%sp)
-        pea     sg_fsd
-        pea     sg_b3
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-4:      lea     SG_SMALL,%a0            | cut to the column's 24 px
-        lea     sg_b3,%a1
-        bsr     sg_wid
-        moveq   #24,%d1
-        cmp.l   %d1,%d0
-        ble.s   5f
-        lea     sg_b3,%a0
-6:      tst.b   (%a0)+
-        bne.s   6b
-        subq.l  #2,%a0
-        cmpa.l  #sg_b3,%a0
-        ble.s   5f
-        clr.b   (%a0)
-        bra.s   4b
-5:      moveq   #0,%d2                  | the picked lock inverted
-        cmp.l   sg_lkc,%d6
-        bne.s   7f
-        cmp.l   sg_lkr,%d4
-        bne.s   7f
-        moveq   #1,%d2
-7:      moveq   #47,%d1                 | rows 12-16, 19-23, ... (7 apart)
-        move.l  %d4,%d0
-        mulu.w  #7,%d0
-        sub.l   %d0,%d1
-        move.l  %d3,%d0
-        lea     sg_b3,%a1
-        bsr     sg_lkcen
-        addq.l  #1,%d4
-.Llk_q: addq.l  #1,%d5
+        move.l  sg_lkc,%d0              | the window's geometry (sg_lkcol)
+        move.l  %d0,sg_lkhc
+        move.l  sg_lkr,%d0
+        move.l  %d0,sg_lkhr
+        moveq   #47,%d0
+        move.l  %d0,sg_lky0
         moveq   #6,%d0
-        cmp.l   %d0,%d5
-        blt     .Llk_p
-.Llk_n: addq.l  #1,%d6
-        moveq   #5,%d0
-        cmp.l   %d0,%d6
-        blt     .Llk_c
+        move.l  %d0,sg_lknr
+        moveq   #3,%d0
+        move.l  %d0,sg_lkfy
+        bsr     sg_lkcol
         moveq   #2,%d0                  | the dotted lines: under the title, over the names, the dividers
         moveq   #9,%d1
         moveq   #2,%d2
@@ -14264,6 +14288,11 @@ sg_lkc: .long   0                       | the lock window's column 0-4 (build 15
 sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
 sg_lkau: .long  0                       | sg_aud when it opened (build 160)
+sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
+sg_lkhr: .long  -1                      | its line inverted, -1 none
+sg_lky0: .long  47                      | the first line's bottom, from the foot
+sg_lknr: .long  6                       | lines at most
+sg_lkfy: .long  3                       | the names' bottom
 sg_wl:  .long   2                       | its line: 0 TRIG, 1 ROW, 2 PAGES
 sg_wpc: .long   0                       | the page picked on PAGES
 sg_wpm: .long   15                      | the pages on, page 1 = bit 0
@@ -14321,6 +14350,7 @@ sg_fatl: .asciz "TRIGLESS"
 sg_fatn: .asciz "NO TRIG"
 sg_flkn: .asciz "LOCKS"
 sg_flkv: .asciz "VALUES"
+sg_lkpl: .asciz "+%d"
 sg_lkcn: .ascii "PLAY\0AMP\0\0LFO\0\0FX1\0\0FX2\0\0"  | the columns' names, 5 bytes each
 sg_lkcm: .ascii "NOTE\0ARP\0\0LFO\0\0CTL1\0CTL2\0"
 sg_lkpt: .byte  0, 2, 1, 3, 4           | the columns' pages (the keys' order: SRC AMP LFO FX1 FX2)

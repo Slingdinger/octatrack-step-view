@@ -1,6 +1,6 @@
 # STEP VIEW
 
-**See and edit the Octatrack's MIDI sequences on its screen.**
+**See and edit the Octatrack's  sequences on its screen.**
 
 On a stock Octatrack, a MIDI track's notes live in the 16 trig LEDs and in parameter-lock menus. You
 see one track and one page at a time, and a note is a number you dial in. STEP VIEW draws the

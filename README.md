@@ -18,7 +18,7 @@ Octatrack OS (1.40C, MKI and MKII).
 > something better.
 
 ![The lock window: every p-lock on an audio step](docs/screens/lock-window.png)
-*New: the lock window. Every p-lock on an audio step, one column per page key.*
+*New: the lock window. Every p-lock on a step, one column per page key, on audio and MIDI tracks.*
 
 ---
 
@@ -28,9 +28,10 @@ Octatrack OS (1.40C, MKI and MKII).
 - [The four views](#the-four-views)
   - [1. Tracks](#1-tracks-the-whole-pattern) · [2. Pages](#2-pages-one-track-all-64-steps) ·
     [3. Pitch](#3-pitch-a-piano-roll) · [4. Split](#4-split-the-numbers-for-the-arranger)
+- [The lock window](#the-lock-window): every p-lock on a step
 - [Audio tracks](#audio-tracks)
-  - [The lock window](#the-lock-window) · [The page panel](#the-page-panel-audio-pages)
-- [Pop-up windows](#pop-up-windows)
+  - [The page panel](#the-page-panel-audio-pages)
+- [The copy window](#the-copy-window)
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
 - [Everything else](#everything-else) (editing, copy / paste, track names)
 - [Settings](#settings-brain--settings--step-view)
@@ -48,7 +49,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Split →** back to Tracks. |
 | Press **MIDI** alone | Switch between the 8 MIDI tracks and the 8 audio tracks. |
 | **Arrows** | Move the cursor. |
-| **YES** | Open the step. An empty step gets a note first (MIDI) or a trig (audio). |
+| **YES** | Open the step's [lock window](#the-lock-window). An empty step gets a note first (MIDI) or a trig (audio). |
 | **FUNC + PLAY** | Clear the step. |
 | **FUNC + NO** | Undo. **FUNC + YES** redoes. |
 | Press **encoder D** | Zoom in or out (Tracks, Pages, Split's timeline), or switch the piano-roll layout (Pitch). |
@@ -214,18 +215,64 @@ It follows the arranger: turn the arranger on or off and the Split view switches
 
 **Editing in Split (MIDI).** **YES** puts the cursor in the values column: **UP / DOWN** pick a line,
 **LEFT / RIGHT** a value, and **LEVEL** changes it (as a parameter lock on that step). DOWN past LEN
-moves the cursor onto the track's name in the grid's title. **NO** goes back to the grid.
+moves the cursor onto the track's name in the grid's title. Press **YES twice quickly** for the step's
+lock window. **NO** goes back to the grid.
 
 **Zoomed timeline.** With the arranger on, press **encoder D** to show 4, 8 or 16 steps a row. **UP /
 DOWN** move one row at a time.
 
 ---
 
+## The lock window
+
+Every p-lock on a step, on one screen. Open it with **YES** on a step:
+
+- **MIDI tracks**: YES in Tracks or Pages, or YES twice quickly in Split. An empty step gets a note
+  first.
+- **Audio tracks**: YES on a step with a trig or p-locks, in any audio view. YES on an empty step just
+  puts a trig there.
+
+![The lock window on a MIDI step](docs/screens/lock-window-midi.png)
+*MIDI track 1, step 1: its NOTE page locks (the four notes, VEL and LEN). NOT3 is picked.*
+
+![The lock window on an audio step](docs/screens/lock-window.png)
+*Audio track 1, step 1: PTCH and STRT locked on the playback page, VOL on AMP. VOL is picked.*
+
+![The lock window with FUNC held](docs/screens/lock-window-values.png)
+*Hold FUNC: the same locks, by value.*
+
+There's one column for each page key, in the order the keys sit under the screen:
+
+| | Key 1 | Key 2 | Key 3 | Key 4 | Key 5 |
+|---|---|---|---|---|---|
+| **MIDI tracks** | NOTE | ARP | LFO | CTL1 | CTL2 |
+| **Audio tracks** | PLAY (SRC on the MKII) | AMP | LFO | FX1 | FX2 |
+
+Each column lists only the parameters locked on that step, by their full names. A page has six
+parameters, so a column never overflows, and a name that appears on two pages (VOL on AMP and on a delay)
+always sits under its own page. On a MIDI step written in STEP VIEW, the NOTE column always lists all
+six: STEP VIEW locks the notes, VEL and LEN to each step.
+
+| Action | Result |
+|---|---|
+| A **page key**, or **LEFT / RIGHT** | Pick a column. |
+| **UP / DOWN** | Pick a lock in the column. |
+| **LEVEL** | Change the picked lock. |
+| **Knobs A-F** | Lock that page's six parameters, as holding a trig does. A new lock starts from the Part's value. (Not on ARP: the Octatrack doesn't lock its ARP page.) |
+| Press a **knob** | Remove that parameter's lock. |
+| Hold **FUNC** | See the values instead of the names. |
+| **YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
+| **NO** | Close the window. |
+
+This window replaced the old MIDI step window (the four notes drawn big) in build 160.
+
+---
+
 ## Audio tracks
 
 Press **MIDI** alone (without MIXER) to see the 8 **audio** tracks instead. Tracks, Pages and Split
-work there: you can see, add and clear trigs, and see and edit every p-lock with the lock window. Pitch
-is MIDI only.
+work there: you can see, add and clear trigs, and see and edit every p-lock with the
+[lock window](#the-lock-window). Pitch is MIDI only.
 
 ![Tracks, the audio side](docs/screens/tracks-audio.png)
 *The 8 audio tracks: AUD in the title.*
@@ -242,34 +289,6 @@ line, name and value.
 ![Split with the audio tracks](docs/screens/split-audio.png)
 *Audio track 1, step 1: a trig with four locks.*
 
-### The lock window
-
-**YES** on an audio step with a trig or p-locks opens the lock window, in any of the audio views. (YES on
-an empty step just puts a trig there.)
-
-![The lock window](docs/screens/lock-window.png)
-*Step 1 of audio track 1: PTCH and STRT locked on the playback page, VOL on AMP. The AMP column is
-picked, and VOL in it.*
-
-![The lock window with FUNC held](docs/screens/lock-window-values.png)
-*Hold FUNC: the same locks, by value.*
-
-There's one column for each page key, in the order the keys sit under the screen: **PLAY** (the
-playback page, SRC on the MKII), **AMP**, **LFO**, **FX1** and **FX2**. Each column lists only the
-parameters locked on that step, by their full names. A page has six parameters, so a column never
-overflows, and a name that appears on two pages (VOL on AMP and on a delay) always sits under its own page.
-
-| Action | Result |
-|---|---|
-| A **page key**, or **LEFT / RIGHT** | Pick a column. |
-| **UP / DOWN** | Pick a lock in the column. |
-| **LEVEL** | Change the picked lock. |
-| **Knobs A-F** | Lock that page's six parameters, as holding a trig does. A new lock starts from the Part's value. |
-| Press a **knob** | Remove that parameter's lock. |
-| Hold **FUNC** | See the values instead of the names. |
-| **YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
-| **NO** | Close the window. |
-
 ### The page panel (audio Pages)
 
 In Pages with the audio tracks (and the arranger off), the bottom half shows the cursor's audio track's
@@ -282,18 +301,11 @@ trig to lock them on that step (a locked value is highlighted). FUNC + knob chan
 
 ---
 
-## Pop-up windows
-
-![Step window](docs/screens/step-window.png)
-*Step window (MIDI): one step, big. The four notes in a row, VEL and LEN under NOTE and NOT2, and LEN's
-subdivision (INF here) under its value. YES on a step opens it in Tracks and Pages (in Split, press YES
-twice quickly). LEVEL and the arrows edit it, NO closes it.*
+## The copy window
 
 ![Copy window](docs/screens/copy-window.png)
 *Copy window, here over Split's grid: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW)
 or chosen pages (LEFT / RIGHT pick one, LEVEL turns it on or off).*
-
-The lock window is under [Audio tracks](#the-lock-window).
 
 ---
 
@@ -326,8 +338,8 @@ lock values on that step as usual.
 - **MIDI notes** have four voices (NOTE and NOT2–4), a velocity and a length. They're all locked to the
   step, so each step can be different.
 - **Undo** goes back nine steps, for the whole pattern.
-- **Grid recording**: hold a trig key for a moment to open that step. Turn **LEVEL** with the key
-  held to change its note.
+- **Grid recording** (MIDI): hold a trig key for a moment to open that step's lock window. Turn
+  **LEVEL** with the key held to change its note.
 
 ### Copy, clear, paste
 
@@ -417,8 +429,6 @@ Planned or being designed, not built yet:
 
 - **A narrower left column in Split**, giving the grid more width. The lock lines move out of it, since
   the lock window shows them.
-- **The lock window for MIDI tracks**: the MIDI step window gains the same five columns (NOTE, ARP, LFO,
-  CTL1, CTL2).
 - **Editing several steps at once**, for every value, not just length.
 - **A length window**: an offset for playback, and setting every step's length at once.
 - Smaller ideas: a single VIEW setting in place of FULL / PAGES / PITCH, and a quicker way into Split.

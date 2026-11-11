@@ -1856,8 +1856,7 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         bgt.s   0f
         move.l  #-1000000,%d0
         move.l  %d0,sg_ytk
-        moveq   #SG_WST,%d0
-        move.l  %d0,sg_win
+        jsr     sg_lkini                | (build 160: the lock window, the step's window before)
         clr.l   sg_idle
         bra     sg_now
 0:      moveq   #SG_PM,%d0              | on M: the arranger editor's MUTE ROW window for the row playing
@@ -2532,12 +2531,14 @@ sg_trig:
 sg_run:
         lea     -48(%sp),%sp
         movem.l %d1-%d7/%a2-%a6,(%sp)
-        tst.l   sg_aud                  | (the lock window only in AUDIO, build 159)
-        bne.s   1f
-        moveq   #SG_WLK,%d0
+        moveq   #SG_WLK,%d0             | the lock window closes when MIDI switches sides (build 160)
         cmp.l   sg_win,%d0
         bne.s   1f
+        move.l  sg_aud,%d0
+        cmp.l   sg_lkau,%d0
+        beq.s   1f
         clr.l   sg_win
+        clr.l   sg_mode
 1:      tst.l   sg_aud                  | AUDIO: no panel, no step's window (build 110)
         beq.s   0f
         clr.l   sg_mode
@@ -2652,8 +2653,7 @@ sg_run:
         beq.s   0f
         tst.l   sg_win
         bne.s   0f
-        moveq   #SG_WST,%d0
-        move.l  %d0,sg_win
+        jsr     sg_lkini                | (build 160: the lock window, the step's window before)
 0:      moveq   #4,%d0                  | the rows: 8 tracks 4 px tall every 7, or 4 pages 8 px every 14
         moveq   #7,%d1                  | (nine 7-px rows down the screen, the first left for a title;
         tst.l   sg_view                 | the panel's lines share them); in arrangement mode 4 pages of
@@ -8438,6 +8438,16 @@ sg_stdraw:
 |      locks kept), NO out. Writes as sg_aset: the bank and its CS1 copy, the lock mask (+0x10), the
 |      dirty flags, 0x4009da20(t).
 
+| d0 = the descriptor's track: the cursor's, + 8 on the MIDI side (FUN_40031da4's MIDI pages; build
+| 160). Uses d0.
+sg_lktk:
+        moveq   #7,%d0
+        and.l   sg_row,%d0
+        tst.l   sg_aud
+        bne.s   9f
+        addq.l  #8,%d0
+9:      rts
+
 | d0 = a column (0-4): its page in d0 (0 SRC, 1 LFO, 2 AMP, 3 FX1, 4 FX2). Uses d0 a0.
 sg_lkpg:
         lea     sg_lkpt,%a0
@@ -8492,7 +8502,21 @@ sg_lkcl:
 | d0 = a page, d1 = a parameter: d0 = the Part's value (Part' = the bank + 0x8ed80 + part x 6322;
 | PLAYBACK + 0x2a + t x 30 + machine x 6, the others + 0x11a + t x 24 + (page - 1) x 6). Uses d0 d1 a0.
 sg_lkpv:
-        move.l  %d2,-(%sp)
+        tst.l   sg_aud                  | MIDI (build 160): the Part's page-1 value at the slot (sg_sel's a0)
+        bne.s   .Lpv_a
+        move.l  %a2,-(%sp)
+        move.l  %a1,-(%sp)
+        mulu.w  #6,%d0
+        add.l   %d1,%d0
+        move.l  %d0,-(%sp)
+        bsr     sg_sel
+        move.l  (%sp)+,%d1
+        moveq   #0,%d0
+        move.b  (0,%a0,%d1.l),%d0
+        movea.l (%sp)+,%a1
+        movea.l (%sp)+,%a2
+        rts
+.Lpv_a: move.l  %d2,-(%sp)
         move.l  %d1,-(%sp)
         movea.l 0x46c82456,%a0
         adda.l  #0x8ed80,%a0
@@ -8526,7 +8550,20 @@ sg_lkpv:
 | d0 = a slot (page x 6 + parameter), d1 = its value (0xff: none) on the cursor's step: both copies, the
 | lock mask, the dirty flags, the track's refresh. Another bank's row: nothing. Keeps everything.
 sg_lkput:
-        lea     -56(%sp),%sp
+        tst.l   sg_aud                  | MIDI (build 160): sg_lock's write
+        bne.s   .Llp_a
+        lea     -24(%sp),%sp
+        movem.l %d0-%d2/%a0-%a2,(%sp)
+        move.l  %d0,%d2
+        move.l  %d1,-(%sp)
+        bsr     sg_sel
+        move.l  (%sp)+,%d0
+        move.l  %d2,%d1
+        bsr     sg_lock
+        movem.l (%sp),%d0-%d2/%a0-%a2
+        lea     24(%sp),%sp
+        rts
+.Llp_a: lea     -56(%sp),%sp
         movem.l %d0-%d7/%a0-%a5,(%sp)
         move.l  %d0,%d6                 | d6: the slot
         move.l  %d1,%d7                 | d7: the value
@@ -8592,7 +8629,18 @@ sg_lkopen:
         movem.l (%sp),%d2-%d3/%a2
         lea     12(%sp),%sp
         bra     sg_atog
-1:      clr.l   sg_lkr
+1:      bsr     sg_lkini
+        movem.l (%sp),%d2-%d3/%a2
+        lea     12(%sp),%sp
+        clr.l   sg_idle
+        bra     sg_now
+
+| The window opened on the cursor's step: on the first column with a lock (else the first), its first
+| lock; the side it was opened on noted (sg_lkau). Keeps everything.
+sg_lkini:
+        lea     -24(%sp),%sp
+        movem.l %d0-%d3/%a0-%a1,(%sp)
+        clr.l   sg_lkr
         moveq   #0,%d3
 2:      move.l  %d3,%d0
         moveq   #0,%d1
@@ -8605,19 +8653,21 @@ sg_lkopen:
         blt.s   2b
         moveq   #0,%d3
 3:      move.l  %d3,sg_lkc
+        move.l  sg_aud,%d0
+        move.l  %d0,sg_lkau
         moveq   #SG_WLK,%d0
         move.l  %d0,sg_win
-        movem.l (%sp),%d2-%d3/%a2
-        lea     12(%sp),%sp
-        clr.l   sg_idle
-        bra     sg_now
+        movem.l (%sp),%d0-%d3/%a0-%a1
+        lea     24(%sp),%sp
+        rts
 
 | The window's keys (from sg_wkey: code d0, a press).
 sg_lkkey:
-        moveq   #0x32,%d1               | NO: out
+        moveq   #0x32,%d1               | NO: out (the panel too, as the step's window did)
         cmp.l   %d1,%d0
         bne.s   1f
         clr.l   sg_win
+        clr.l   sg_mode
         bra     sg_now
 1:      moveq   #0x31,%d1               | YES: trig <-> trigless
         cmp.l   %d1,%d0
@@ -8673,7 +8723,11 @@ sg_lktt:
         bset    %d0,(0,%a1,%d2.l)
         bset    %d0,(0,%a3,%d2.l)
 2:      bsr     sg_dirty
-        move.l  sg_row,-(%sp)
+        move.l  sg_row,%d0              | (a MIDI track's engine track: 8 + t)
+        tst.l   sg_aud
+        bne.s   3f
+        addq.l  #8,%d0
+3:      move.l  %d0,-(%sp)
         jsr     0x4009da20
         addq.l  #4,%sp
 9:      movem.l (%sp),%d2/%a2-%a3
@@ -8725,9 +8779,13 @@ sg_lkenc:
         move.l  sg_lkc,%d0
         bsr     sg_lkpg
         move.l  %d0,%d3                 | d3: the page
-        move.l  %d3,-(%sp)
-        moveq   #7,%d0
-        and.l   sg_row,%d0
+        tst.l   sg_aud                  | (MIDI: ARP has no locks, build 160)
+        bne.s   0f
+        moveq   #2,%d0
+        cmp.l   %d0,%d3
+        beq     9f
+0:      move.l  %d3,-(%sp)
+        bsr     sg_lktk
         move.l  %d0,-(%sp)
         jsr     0x40031da4
         addq.l  #8,%sp
@@ -8938,7 +8996,10 @@ sg_lkdraw:
         move.l  %d6,%d0                 | its name along the foot, inverted when picked
         mulu.w  #5,%d0
         lea     sg_lkcn,%a1
-        adda.l  %d0,%a1
+        tst.l   sg_aud
+        bne.s   0f
+        lea     sg_lkcm,%a1             | (MIDI: NOTE ARP LFO CTL1 CTL2, build 160)
+0:      adda.l  %d0,%a1
         moveq   #0,%d2
         cmp.l   sg_lkc,%d6
         bne.s   1f
@@ -8950,8 +9011,7 @@ sg_lkdraw:
         bsr     sg_lkpg
         movea.l %d0,%a3                 | a3: the page
         move.l  %d0,-(%sp)
-        moveq   #7,%d0
-        and.l   sg_row,%d0
+        bsr     sg_lktk
         move.l  %d0,-(%sp)
         jsr     0x40031da4
         addq.l  #8,%sp
@@ -11894,8 +11954,7 @@ sg_pyw:
         move.l  %d0,sg_mode
         moveq   #SG_PN,%d0
         move.l  %d0,sg_prm
-        moveq   #SG_WST,%d0
-        move.l  %d0,sg_win
+        jsr     sg_lkini                | (build 160: the lock window, the step's window before)
         clr.l   sg_idle
         bra     sg_now
 
@@ -14203,6 +14262,7 @@ sg_win: .long   0                       | our window: 0 none, 1 COPY, 2 CLEAR
 sg_lkc: .long   0                       | the lock window's column 0-4 (build 159)
 sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
+sg_lkau: .long  0                       | sg_aud when it opened (build 160)
 sg_wl:  .long   2                       | its line: 0 TRIG, 1 ROW, 2 PAGES
 sg_wpc: .long   0                       | the page picked on PAGES
 sg_wpm: .long   15                      | the pages on, page 1 = bit 0
@@ -14261,6 +14321,7 @@ sg_fatn: .asciz "NO TRIG"
 sg_flkn: .asciz "LOCKS"
 sg_flkv: .asciz "VALUES"
 sg_lkcn: .ascii "PLAY\0AMP\0\0LFO\0\0FX1\0\0FX2\0\0"  | the columns' names, 5 bytes each
+sg_lkcm: .ascii "NOTE\0ARP\0\0LFO\0\0CTL1\0CTL2\0"
 sg_lkpt: .byte  0, 2, 1, 3, 4           | the columns' pages (the keys' order: SRC AMP LFO FX1 FX2)
 sg_fanl: .asciz "NO LOCKS"
 sg_famo: .asciz "+%d MORE"

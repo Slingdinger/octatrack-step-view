@@ -5957,6 +5957,7 @@ sg_panel:
         moveq   #50,%d1
         moveq   #0,%d2
         bsr     sg_tx
+        bra     .Lsg_pend               | (build 161: the lock lines gone, the lock window has them)
         moveq   #0,%d7                  | d7: the slot, d6: the lines drawn, d5: the locks past five
         moveq   #0,%d6
         moveq   #0,%d5

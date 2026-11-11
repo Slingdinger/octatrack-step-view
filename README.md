@@ -283,11 +283,11 @@ LEDs in grid recording, FUNC + BANK's track settings, and holding a trig to lock
 under the view is AMP, so a held trig with knobs A-C locks AMP values. Without a trig held, knobs A-C
 do nothing here (they would change AMP settings you can't see).
 
-**In Split**, the left column shows the step's trig (TRIG, TRIGLESS or NO TRIG) and its p-locks, one per
-line, name and value.
+**In Split**, the left column shows the step's trig (TRIG, TRIGLESS or NO TRIG). Its p-locks are in the
+[lock window](#the-lock-window): press YES.
 
 ![Split with the audio tracks](docs/screens/split-audio.png)
-*Audio track 1, step 1: a trig with four locks.*
+*Audio track 1, step 1: a trig, the pattern cues next to the grid.*
 
 ### The page panel (audio Pages)
 
@@ -427,8 +427,7 @@ it.
 
 Planned or being designed, not built yet:
 
-- **A narrower left column in Split**, giving the grid more width. The lock lines move out of it, since
-  the lock window shows them.
+- **A narrower left column in Split**, giving the grid more width (mocked up, on hold).
 - **Editing several steps at once**, for every value, not just length.
 - **A length window**: an offset for playback, and setting every step's length at once.
 - Smaller ideas: a single VIEW setting in place of FULL / PAGES / PITCH, and a quicker way into Split.

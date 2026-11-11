@@ -191,7 +191,7 @@ sg_poll:
         move.l  #tm_poll,%d0            | (its per-track trig mode after a load)
         beq.s   0f
         jsr     tm_poll
-0:      bsr     sg_bsync                | the views' settings and BRAIN's table (build 137)
+0:      jsr     sg_bsync                | the views' settings and BRAIN's table (build 137; jsr since 158: a bsr this far wrapped, silently, into OCTA303's tables)
         bsr     sg_clock
         bsr     sg_here
         beq     0f
@@ -1135,8 +1135,9 @@ sg_vflip:
         bra.s   .Lvf_n
 .Lvf_p: tst.l   sg_aud
         beq.s   .Lvf_h
-        clr.l   sg_view                 | AUDIO: PAGES -> TRKS
-        bra.s   .Lvf_n
+        clr.l   sg_full                 | AUDIO: PAGES -> the panel view (build 158; TRKS before)
+        bsr     sg_vwset
+        bra.s   .Lvf_z
 .Lvf_h: moveq   #1,%d0                  | PAGES -> PITCH: its range, cursor note and trig keys as they
         move.l  %d0,sg_pv               | were (build 142: sg_pini re-centred them on the cursor step's
         clr.l   sg_mode                 | note each visit, so the range moved and the project's RANGE
@@ -5699,6 +5700,8 @@ sg_panel:
         lea     sg_b1,%a1
         bsr     sg_tx
 
+        tst.l   sg_aud                  | AUDIO (build 158): the audio step's trig and locks instead
+        bne     .Lsg_paud
         bsr     sg_sel                  | the cursor step's values
         movea.l %a2,%a3                 | a3: its locks
         movea.l %a0,%a4                 | a4: the Part's
@@ -5895,9 +5898,149 @@ sg_panel:
         moveq   #35,%d3
         bsr     sg_inv
 5:
+.Lsg_pend:
         movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
         rts
+
+| AUDIO in the panel view (build 158): under STEP, the step's trig (TRIG, TRIGLESS, NO TRIG; rows 9-13)
+| and its locks, one a line (rows 16-48: five; more: "+n MORE"), a page's name and its value through the
+| page's descriptor and formatter (FUN_40031da4(track, slot / 6) + 0x16, + 0xca), cut at x 34 (the
+| pattern cues right of it). sg_panel's frame. Uses d0-d7 a0-a5.
+.Lsg_paud:
+        bsr     sg_sel                  | a1 the record, a2 the step's 32 locks, d0 the step
+        movea.l %a2,%a5                 | a5: the locks
+        move.l  %d0,%d1
+        lsr.l   #3,%d1
+        moveq   #7,%d2
+        sub.l   %d1,%d2                 | the masks' byte
+        andi.l  #7,%d0
+        lea     sg_fatr,%a0             | TRIG / TRIGLESS / NO TRIG
+        btst    %d0,(0,%a1,%d2.l)
+        bne.s   1f
+        lea     sg_fatl,%a0
+        btst    %d0,(8,%a1,%d2.l)
+        bne.s   1f
+        lea     sg_fatn,%a0
+1:      movea.l %a0,%a1
+        lea     SG_SMALL,%a0
+        moveq   #SG_PX,%d0
+        moveq   #50,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        moveq   #0,%d7                  | d7: the slot, d6: the lines drawn, d5: the locks past five
+        moveq   #0,%d6
+        moveq   #0,%d5
+.Lpa_l: moveq   #0,%d0
+        move.b  (0,%a5,%d7.l),%d0
+        cmpi.l  #0xff,%d0
+        beq     .Lpa_n
+        moveq   #5,%d1
+        cmp.l   %d1,%d6
+        blt.s   1f
+        addq.l  #1,%d5
+        bra     .Lpa_n
+1:      move.l  %d0,%d4                 | d4: the value
+        move.l  %d7,%d0                 | the page: slot / 6
+        divu.w  #6,%d0
+        andi.l  #0xffff,%d0
+        move.l  %d0,-(%sp)
+        move.l  sg_row,-(%sp)
+        jsr     0x40031da4
+        addq.l  #8,%sp
+        tst.l   %d0
+        beq     .Lpa_n
+        movea.l %d0,%a4                 | a4: the descriptor
+        move.l  %d7,%d3                 | d3: the slot in the page
+        divu.w  #6,%d3
+        swap    %d3
+        andi.l  #0xffff,%d3
+        move.l  %d3,%d0                 | the name (5 characters at most)
+        mulu.w  #6,%d0
+        lea     (0x16,%a4,%d0.l),%a0
+        lea     sg_b2,%a1
+        moveq   #5,%d1
+2:      move.b  (%a0)+,(%a1)+
+        subq.l  #1,%d1
+        bne.s   2b
+        clr.b   (%a1)
+        move.l  %d3,%d0                 | the value's text
+        lsl.l   #2,%d0
+        lea     0xca(%a4),%a0
+        move.l  (0,%a0,%d0.l),%d0
+        beq.s   3f
+        movea.l %d0,%a0
+        move.l  %d4,-(%sp)
+        pea     sg_b3
+        jsr     (%a0)
+        addq.l  #8,%sp
+        bra.s   4f
+3:      move.l  %d4,-(%sp)
+        pea     sg_fsd
+        pea     sg_b3
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+4:      moveq   #43,%d4                 | d4: its line's bottom (rows 16-20, 23-27, ..., 44-48)
+        move.l  %d6,%d0
+        mulu.w  #7,%d0
+        sub.l   %d0,%d4
+        lea     SG_SMALL,%a0
+        lea     sg_b2,%a1
+        moveq   #SG_PX,%d0
+        move.l  %d4,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        move.l  %d0,%d3
+        addq.l  #SG_PX+3,%d3            | d3: the value's x
+5:      lea     SG_SMALL,%a0            | cut at x 34
+        lea     sg_b3,%a1
+        bsr     sg_wid
+        add.l   %d3,%d0
+        moveq   #35,%d1
+        cmp.l   %d1,%d0
+        ble.s   7f
+        lea     sg_b3,%a0
+6:      tst.b   (%a0)+
+        bne.s   6b
+        subq.l  #2,%a0
+        cmpa.l  #sg_b3,%a0
+        blt.s   7f
+        clr.b   (%a0)
+        bra.s   5b
+7:      lea     SG_SMALL,%a0
+        lea     sg_b3,%a1
+        move.l  %d3,%d0
+        move.l  %d4,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        addq.l  #1,%d6
+.Lpa_n: addq.l  #1,%d7
+        moveq   #30,%d0
+        cmp.l   %d0,%d7
+        blt     .Lpa_l
+        tst.l   %d6                     | none: NO LOCKS; past five: +n MORE on the fifth line's place
+        bne.s   1f
+        lea     sg_fanl,%a1
+        lea     SG_SMALL,%a0
+        moveq   #SG_PX,%d0
+        moveq   #43,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        bra     .Lsg_pend
+1:      tst.l   %d5
+        beq     .Lsg_pend
+        move.l  %d5,-(%sp)
+        pea     sg_famo
+        pea     sg_b1
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        moveq   #SG_PX,%d0
+        moveq   #8,%d1
+        moveq   #0,%d2
+        lea     sg_b1,%a1
+        lea     SG_SMALL,%a0
+        bsr     sg_tx
+        bra     .Lsg_pend
 
 | ---- COPY / CLEAR / PASTE (build 82): FUNC + REC (COPY), FUNC + PLAY (CLEAR), FUNC + STOP (PASTE),
 |      the transport keys' FUNC functions, on the cursor's track. FUNC + LEVEL in the grid marks a run of
@@ -9233,16 +9376,15 @@ sg_kmidi:
         bsr     sg_mled                 | (AUDIO off: the LED back, build 116)
 .Lkm_a: clr.l   sg_pv
         clr.l   sg_mode
-        tst.l   sg_aud                  | (AUDIO from the panel view: TRKS -- no panel in AUDIO, build 141)
-        beq.s   .Lkm_b
-        tst.l   sg_full
-        bne.s   .Lkm_b
-        moveq   #1,%d0
-        move.l  %d0,sg_full
-        clr.l   sg_view
+        tst.l   sg_full                 | the panel view stays, on the other tracks (build 158: AUDIO went to
+        bne.s   .Lkm_b                  | TRKS in 141-157): its window again, the timeline's rows afresh
+        bsr     sg_vwset
         moveq   #-1,%d0
         move.l  %d0,sg_zlst
         bsr     sg_zset
+        bsr     sg_tlon
+        beq.s   .Lkm_b
+        bsr     sg_tupd
 .Lkm_b: bsr     sg_alab
         bra     sg_now
 0:
@@ -13421,6 +13563,11 @@ sg_apv1: .long  0, 0                   | APGS's panel: the page's and its SETUP'
 sg_apsx: .long  -1                      | its held step, -1 none
 sg_ap2e: .long  0x4003a474, 0, 0x4003adec, 0x4003abe4, 0x4003a9dc | the page-2 editors (slot, delta): PLAYBACK, LFO none, AMP, FX1, FX2
 sg_aplf: .byte  0, 3, 0x18, 0x1b       | LFO SETUP's slots in its Part rows (sg_apcell)
+sg_fatr: .asciz "TRIG"
+sg_fatl: .asciz "TRIGLESS"
+sg_fatn: .asciz "NO TRIG"
+sg_fanl: .asciz "NO LOCKS"
+sg_famo: .asciz "+%d MORE"
 sg_apft: .asciz "%s T%d"
 sg_apfs: .asciz "%s S%02d"
 sg_apsu: .asciz "SETUP"

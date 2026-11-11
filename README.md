@@ -180,6 +180,13 @@ The step's values are at the top left, the clock at the bottom. The timeline is 
 
 It follows the arranger: turn the arranger on or off and the Split view switches with it.
 
+**Audio tracks in Split.** Press **MIDI** in Split to see the 8 audio tracks instead (arranger off) or
+the cursor's audio track in the timeline (arranger on). The left column then shows the step's trig
+(TRIG, TRIGLESS or NO TRIG) and its p-locks, one per line, name and value.
+
+![Split with the audio tracks](docs/screens/split-audio.png)
+*Audio track 1, step 1: a trig with four locks.*
+
 In the values column: **UP / DOWN** pick a line, **LEFT / RIGHT** a value, and **LEVEL** changes it (as a
 parameter lock on that step). **NO** goes back to the grid.
 
@@ -240,8 +247,8 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 
 ### AUDIO
 
-Press **MIDI** alone (without MIXER) to see the 8 **audio** tracks instead. Tracks and Pages work
-there: you can see, add and clear trigs. Pitch and Split are MIDI only.
+Press **MIDI** alone (without MIXER) to see the 8 **audio** tracks instead. Tracks, Pages and Split work
+there: you can see, add and clear trigs. Pitch is MIDI only.
 
 Showing the audio tracks puts the Octatrack itself in audio mode (press MIDI again to go back), so
 the hardware works on the audio track under the cursor as it normally would: the trig keys and their

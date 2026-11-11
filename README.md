@@ -286,11 +286,12 @@ trig to lock them on that step (a locked value is highlighted). FUNC + knob chan
 
 ![Step window](docs/screens/step-window.png)
 *Step window (MIDI): one step, big. The four notes in a row, VEL and LEN under NOTE and NOT2, and LEN's
-subdivision (1/16, INF) under its value. YES on a step opens it in Tracks and Pages (in Split, press YES
+subdivision (INF here) under its value. YES on a step opens it in Tracks and Pages (in Split, press YES
 twice quickly). LEVEL and the arrows edit it, NO closes it.*
 
 ![Copy window](docs/screens/copy-window.png)
-*Copy window: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW) or chosen pages.*
+*Copy window, here over Split's grid: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW)
+or chosen pages (LEFT / RIGHT pick one, LEVEL turns it on or off).*
 
 The lock window is under [Audio tracks](#the-lock-window).
 

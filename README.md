@@ -101,12 +101,21 @@ bars to the next row.*
 How to read it:
 
 - **Tall bar** = a trig. **Short bar** = a trigless trig. **Line** = an empty step.
-- **Blank** = past the end of that track (tracks can be different lengths).
-- A track shorter than the row repeats to fill it, so a 16-step track shows twice at 32 a row.
+- Tracks can be different lengths (SCALE set to PER TRACK). A track shorter than the row repeats to
+  fill it, the way it loops when it plays (see below). In Split, steps past a track's end are blank.
 - The track number at the left is **inverted** for the active track and flashes **M** when the track
   is muted.
 - At the right: the cursor's step (S01) and which part of the pattern you're looking at (1/2). The
   zoom is at the bottom (32/R = 32 steps a row).
+
+**Different track lengths.** Each track loops at its own length, and Tracks draws it that way: a track
+shorter than the row starts again right after its last step.
+
+![Tracks with eight different lengths](docs/screens/tracks-lengths.png)
+*Eight tracks of different lengths, each with one trig on its first step, 16 steps a row. Track 1 is 16
+steps long, so its trig shows once. Track 2 is 12, so its trig comes back on step 13. Track 3 is 8 (steps
+1 and 9), track 4 is 6 (1, 7, 13), track 5 is 5 (1, 6, 11, 16), track 6 is 4, and track 7 is 3 (every
+third step). Track 8 is 64, so the rest of its loop is on the next three pages.*
 
 **Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),

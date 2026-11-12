@@ -13,13 +13,6 @@ Octatrack, the 8 **audio** tracks and the 8 **MIDI** tracks, and **MIDI** switch
 It's a module for [octabam](https://github.com/sambanks/octabam), a toolkit for building your own
 Octatrack OS (1.40C, MKI and MKII).
 
-> **Work in progress.** The way you move between screens is still being worked out. This page explains
-> both *how* it works and *why* it works that way, so you can judge it, change it, or suggest
-> something better.
-
-![The lock window: every p-lock on a step](docs/screens/lock-window.png)
-*The lock window: every p-lock on a step, one column per page key.*
-
 ---
 
 ## Contents

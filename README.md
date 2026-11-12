@@ -80,14 +80,12 @@ were on, in the mode you were in.
 
 ## The four views
 
-Each view answers one question.
-
-| View | The question it answers |
-|---|---|
-| **Tracks** | *What's happening in my pattern?* All 8 tracks at once. |
-| **Pages** | *What is this one track doing over all 64 steps?* With the arranger on: *what plays next, and when?* |
-| **Pitch** | *What notes am I writing?* A piano roll of one MIDI track. |
-| **Split** | *What exactly is on this step, or in this arrangement row?* Numbers next to the grid. Built with the arranger in mind. |
+| View | What it shows | Use it for |
+|---|---|---|
+| **Tracks** | All 8 tracks at once, one row each. | Placing trigs fast and seeing the whole pattern. |
+| **Pages** | One track's 64 steps, its four pages stacked. With the arranger on, the arrangement in the order it plays. | Long tracks, and following an arrangement. |
+| **Pitch** | One MIDI track as a piano roll. | Writing melodies and bass lines. |
+| **Split** | The grid on the right, the cursor step's values and the pattern cues on the left. | Exact values, and running the arranger. |
 
 ### 1. Tracks: the whole pattern
 

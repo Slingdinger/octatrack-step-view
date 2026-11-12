@@ -93,6 +93,10 @@ How to read it:
 - **Tall bar** = a trig. **Short bar** = a trigless trig. **Line** = an empty step.
 - Each row shows **only that track's own steps**, and **its length** is at the right end of the row.
   Tracks can be different lengths (SCALE set to PER TRACK); the rest of a shorter track's row is blank.
+- **Each row follows its own track.** While playing, a row shows the part of its track that's
+  playing, with the play mark at that track's own step, so a short track never scrolls out of view.
+  The cursor's row shows the cursor's page while you move it, and the page boxes follow the cursor's
+  track.
 - The track number at the left is **inverted** for the active track and flashes **M** when the track
   is muted.
 - **The title**: MIDI: or AUD: and the track's name at the left. At the right: the arrangement row
@@ -105,9 +109,11 @@ How to read it:
 *16 steps a row: press encoder D. Track 1 is 16 steps, track 2 is 12, track 3 is 8, down to track 7 at
 3; track 8 is 64, so it carries on over the next pages.*
 
-![Tracks while playing, a pattern coming up](docs/screens/tracks-playing.png)
-*Playing, with A04 queued: the countdown (6 bars) in place of the >>. The page boxes show the second
-half of the pattern on screen.*
+![Tracks while playing](docs/screens/tracks-playing.png)
+*Playing: each row's play mark sits at its own track's step. The 64-step track has moved on, while the
+short tracks keep looping in place.*
+
+A pattern coming up shows as A03>>A04, with the bars left swapping in for the >> on the flash.
 
 **Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),

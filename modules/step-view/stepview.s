@@ -2931,6 +2931,7 @@ sg_run:
         muls.l  %d2,%d0
         movea.l %d0,%a6
 1:      bsr     sg_trk                  | a3 record, d6 length, d5 step playing
+        bsr     sg_fwrow                | (Tracks: each row its own track's window, build 168)
         bsr     sg_fpcs                 | (the full view's play column, build 94)
         move.l  sg_rs,%d0               | a4: the row's top, 7 + stride (r + 1) - height: the steps sit
         muls.l  %d7,%d0                 | at the foot of their 7-px row (or pair of rows), the play line
@@ -10024,6 +10025,44 @@ sg_flab:
         addq.l  #8,%sp
         rts
 
+| Tracks (build 168, Zach's option A): row d7's first step a6 -- each row its own track's window, so a
+| short track never goes blank. Playing hands off: the window holding the step its track plays (d5);
+| hands on or stopped: the cursor's row its page (sg_step), the others their step playing's, stopped
+| step 1. The cursor's row's is the title's (sg_fwin: its page boxes). d5 the step playing (-1
+| stopped). Uses d0 d1.
+sg_fwrow:
+        tst.l   sg_full
+        beq.s   9f
+        tst.l   sg_view
+        bne.s   9f
+        tst.l   sg_pv
+        bne.s   9f
+        move.l  sg_zn,%d1
+        tst.l   %d5
+        bmi.s   1f
+        tst.l   sg_mode
+        bne.s   1f
+        moveq   #SG_IDLE,%d0
+        cmp.l   sg_idle,%d0
+        bgt.s   1f
+        move.l  %d5,%d0
+        bra.s   3f
+1:      move.l  %d5,%d0
+        cmp.l   sg_row,%d7
+        bne.s   2f
+        move.l  sg_step,%d0
+        bra.s   3f
+2:      tst.l   %d5
+        bpl.s   3f
+        moveq   #0,%d0
+3:      divu.l  %d1,%d0
+        muls.l  %d1,%d0
+        movea.l %d0,%a6
+        cmp.l   sg_row,%d7
+        bne.s   9f
+        move.l  %d0,sg_fwin
+9:      rts
+
 | Z clear when column d4 of the row (a6 its first step, d6 the track's length) may show the cursor: in the
 | full view only its first column (the steps repeat across it; the 8-track window counted from its
 | first step, sg_fwin; the 4-page window from step 1); elsewhere always (build 98). Uses d0 d1.
@@ -10033,6 +10072,8 @@ sg_fcur1:
         moveq   #0,%d0
         rts
 .Lfc_0: tst.l   sg_full
+        beq.s   9f
+        tst.l   sg_view                 | (Tracks: its own steps, no repeats since 167: any column)
         beq.s   9f
         tst.l   %d6
         ble.s   9f

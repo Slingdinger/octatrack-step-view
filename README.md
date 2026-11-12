@@ -20,8 +20,10 @@ Octatrack OS (1.40C, MKI and MKII).
 - [Quick start](#quick-start)
 - [Audio and MIDI](#audio-and-midi)
 - [The four views](#the-four-views)
-  - [1. Tracks](#1-tracks-the-whole-pattern) · [2. Pages](#2-pages-one-track-all-64-steps) ·
-    [3. Pitch](#3-pitch-a-piano-roll-midi) · [4. Split](#4-split-the-numbers-for-the-arranger)
+  - [1. Tracks](#1-tracks-the-whole-pattern)
+    [2. Pages](#2-pages-one-track-all-64-steps) ·
+    [3. Pitch](#3-pitch-a-piano-roll-midi)
+    [4. Split](#4-split-the-numbers-for-the-arranger)
 - [The lock window](#the-lock-window): every p-lock on a step
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
 - [Everything else](#everything-else) (editing, copy / paste, track names)

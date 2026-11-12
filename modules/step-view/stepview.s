@@ -9259,6 +9259,11 @@ sg_fstep:
         add.l   %d4,%d3
         tst.l   sg_full
         beq.s   9f
+        tst.l   sg_flen                 | Tracks' lengths view (build 166): the step itself, the columns
+        beq.s   0f                      | past the track's length blank (the caller's test)
+        tst.l   sg_view
+        beq.s   9f
+0:
         tst.l   %d6
         ble.s   9f
         move.l  %d3,%d0
@@ -9279,7 +9284,13 @@ sg_fpcs:
         bmi.s   9f
         tst.l   %d6
         ble.s   9f
-        moveq   #0,%d0
+        tst.l   sg_flen                 | Tracks' lengths view (build 166): the step playing itself
+        beq.s   0f
+        tst.l   sg_view
+        bne.s   0f
+        move.l  %d5,sg_fpc
+        rts
+0:      moveq   #0,%d0
         move.w  0x800065b4,%d0          | P
         tst.l   sg_view
         beq.s   1f
@@ -12103,8 +12114,14 @@ sg_dkp:
         moveq   #1,%d1                  | TRKS / PAGES: 16 <-> 32
         moveq   #3,%d0
         cmp.l   sg_fzr,%d0
-        bne.s   5f
+        bne.s   4f
         moveq   #-1,%d1
+        bra.s   5f
+4:      tst.l   sg_view                 | Tracks, 16 -> 32: the other view too, looped <-> lengths (build
+        bne.s   5f                      | 166): 32 -> 16 -> 32 LENGTHS -> 16 LENGTHS -> 32
+        move.l  sg_flen,%d0
+        eori.l  #1,%d0
+        move.l  %d0,sg_flen
         bra.s   5f
 2:      tst.l   sg_view                 | the panel view: its timeline only
         beq.s   9f
@@ -12120,6 +12137,16 @@ sg_dkp:
         bsr     sg_kenc
         addq.l  #8,%sp
         clr.l   sg_fkx
+        tst.l   sg_full                 | Tracks: "LENGTHS 32" in the lengths view, "ZOOM 32" looped
+        beq.s   9f                      | (build 166)
+        tst.l   sg_view
+        bne.s   9f
+        tst.l   sg_flen
+        beq.s   9f
+        lea     sg_fzl,%a0
+        move.l  sg_zn,%d0
+        bsr     sg_cmsg
+        bsr     sg_now
 9:      rts
 8:      movea.l sg_eksv+12,%a0
         jmp     (%a0)
@@ -14278,6 +14305,7 @@ sg_fnl: .ascii  "NOTE\0\0\0\0"            | 8 bytes each (build 90)
         .ascii  "NOT3\0\0\0\0"
         .ascii  "NOT4\0\0\0\0"
 sg_fzm: .asciz  "ZOOM"
+sg_fzl: .asciz  "LENGTHS"
 sg_fnq: .asciz  "CLEAR? YES"
 sg_fcp: .asciz  "COPY"
 sg_fcc: .asciz  "CLEAR"
@@ -14344,6 +14372,7 @@ sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
 sg_lkau: .long  0                       | sg_aud when it opened (build 160)
 sg_mpc: .long   0                       | MIDI Pages' panel column (build 165)
+sg_flen: .long  0                       | 1: Tracks shows each track's own steps, not looped (build 166)
 sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
 sg_lkhr: .long  -1                      | its line inverted, -1 none
 sg_lky0: .long  47                      | the first line's bottom, from the foot

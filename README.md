@@ -30,7 +30,6 @@ Octatrack OS (1.40C, MKI and MKII).
   - [1. Tracks](#1-tracks-the-whole-pattern) · [2. Pages](#2-pages-one-track-all-64-steps) ·
     [3. Pitch](#3-pitch-a-piano-roll-midi) · [4. Split](#4-split-the-numbers-for-the-arranger)
 - [The lock window](#the-lock-window): every p-lock on a step
-- [The copy window](#the-copy-window)
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
 - [Everything else](#everything-else) (editing, copy / paste, track names)
 - [Settings](#settings-brain--settings--step-view)
@@ -297,14 +296,6 @@ The same columns, three lines tall, are the bottom half of [audio Pages](#2-page
 
 ---
 
-## The copy window
-
-![Copy window](docs/screens/copy-window.png)
-*Copy window, here over Split's grid: FUNC + REC with nothing marked. Copy one step (TRIG), a page (ROW)
-or chosen pages (LEFT / RIGHT pick one, LEVEL turns it on or off).*
-
----
-
 ## Encoder D: press it to change how the view looks
 
 Press **encoder D** in any view to change how it's shown. In Pages, turning D sets the row spacing (10 to
@@ -345,8 +336,8 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
   PASTE repeats what you copied to fill the run.
 - On a **track number** (Tracks): COPY, CLEAR and PASTE act on the whole track, length and scale
   included. On the audio side, CLEAR only.
-- With nothing marked: **CLEAR** clears the cursor's step, **COPY** opens the copy window, and
-  **PASTE** puts the copy at the cursor.
+- With nothing marked: **COPY** copies the cursor's step, **CLEAR** clears it, and **PASTE** puts the
+  copy at the cursor.
 - **Copying between audio and MIDI tracks** (grid recording's FUNC + REC / FUNC + STOP) converts
   between them. An audio track's pitch becomes notes, and an OCTA-303 line keeps its accents and
   slides.

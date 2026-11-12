@@ -179,6 +179,7 @@ sg_rest:
         .set    SG_PSZ, 0x8ed8          | a pattern (STEP_LOCKS.md section 1)
         .set    SG_WST, 4               | sg_win: the step's window (build 90; SG_WSC 3 the scale window)
         .set    SG_WLK, 5               | sg_win: the lock window (build 159)
+        .set    SG_CPW, 0               | 1: COPY without a run opens the copy window (82-162; off since 163)
         .set    SG_SY0, 50              | its lines' bottom y (from the bottom): STEP, the notes' labels,
         .set    SG_SY1, 41              | the notes, VEL / LEN's labels, their values
         .set    SG_SY2, 32
@@ -6562,7 +6563,9 @@ sg_kcop:
         moveq   #0,%d3
         bsr     sg_cop
         bra.s   3f
-4:      moveq   #1,%d0                  | else the window: COPY 1, PAGES picked, all four on
+4:
+        .if     SG_CPW
+        moveq   #1,%d0                  | else the window: COPY 1, PAGES picked, all four on
         add.l   %d6,%d0
         move.l  %d0,sg_win
         moveq   #2,%d0
@@ -6572,6 +6575,10 @@ sg_kcop:
         clr.l   sg_wpc
         move.l  sg_row,%d0              | COPY's 303 line: the same-numbered audio track (build 107)
         move.l  %d0,sg_w3t
+        .else
+        moveq   #0,%d3                  | (build 163: no window -- COPY without a run copies the cursor's
+        bsr     sg_cop                  | step, as the window's TRIG line did; SG_CPW 1 brings it back)
+        .endif
 3:      movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
         bra     sg_now

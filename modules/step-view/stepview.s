@@ -1773,8 +1773,14 @@ sg_mv:
         bne     sg_now
         moveq   #1,%d0
         move.l  %d0,sg_mode
-        moveq   #SG_PS,%d0              | (on STEP since build 165: the notes' lines are gone)
-        move.l  %d0,sg_prm
+        moveq   #0,%d0                  | the nearest value (build 167; STEP in 165-166, NOTE before): the
+        tst.l   0x460d1aec              | arranger off, the name (its first character); on, the row's
+        beq.s   0f                      | pattern line by the cursor's row (M on the first, the pattern to
+        moveq   #SG_PM,%d0              | come below)
+        tst.l   sg_trow
+        beq.s   0f
+        moveq   #SG_PB,%d0
+0:      move.l  %d0,sg_prm
         clr.l   sg_hk
         bra     6f
 8:      move.l  sg_step,%d0             | the 4-page window's UP/DOWN: a page
@@ -2209,7 +2215,7 @@ sg_pmove:
 | d3 = a panel line: Z clear when it is not shown: ROW and the two pattern lines need the arrangement
 | on (ROW since build 69, the patterns since 78), SAVE an unsaved arrangement (78). Uses d0 a0.
 sg_lhid:
-        moveq   #6,%d0                  | the notes, VEL, LEN: not shown since build 165
+        moveq   #5,%d0                  | STEP (167), the notes, VEL, LEN (165): not shown
         cmp.l   %d0,%d3
         bge.s   9f
         moveq   #1,%d0
@@ -5708,20 +5714,7 @@ sg_panel:
 
                                         | (line 3, SAVE, not drawn since build 154: the note block sits
                                         | there; the ARR menu's SAVE as ever)
-1:      move.l  sg_step,%d0             | STEP nn (in the panel too, build 55)
-        addq.l  #1,%d0
-        move.l  %d0,-(%sp)
-        pea     sg_f4
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-        moveq   #SG_PS,%d0              | picked (build 63): LEVEL moves the cursor's step
-        bsr     sg_hl
-        lea     SG_SMALL,%a0
-        moveq   #SG_PX,%d0
-        moveq   #57,%d1                 | line 1, rows 2-6 (rows 30-34 until 153)
-        lea     sg_b1,%a1
-        bsr     sg_tx
+1:                                      | (STEP nn, line 1 since 55, gone in 167: only the lock window's)
 
         bra     .Lsg_paud               | the step's trig, both sides (build 165: the MIDI notes, VEL and
                                         | LEN gone, the lock window has them; AUDIO since 158)
@@ -5952,7 +5945,7 @@ sg_panel:
 1:      movea.l %a0,%a1
         lea     SG_SMALL,%a0
         moveq   #SG_PX,%d0
-        moveq   #50,%d1
+        moveq   #57,%d1                 | line 1 (rows 9-13 until 166)
         moveq   #0,%d2
         bsr     sg_tx
         bra     .Lsg_pend               | (build 161: the lock lines gone, the lock window has them)
@@ -12117,12 +12110,7 @@ sg_dkp:
         bne.s   4f
         moveq   #-1,%d1
         bra.s   5f
-4:      tst.l   sg_view                 | Tracks, 16 -> 32: the other view too, looped <-> lengths (build
-        bne.s   5f                      | 166): 32 -> 16 -> 32 LENGTHS -> 16 LENGTHS -> 32
-        move.l  sg_flen,%d0
-        eori.l  #1,%d0
-        move.l  %d0,sg_flen
-        bra.s   5f
+4:      bra.s   5f                      | (166's looped / lengths cycle gone in 167: Tracks its own steps)
 2:      tst.l   sg_view                 | the panel view: its timeline only
         beq.s   9f
         moveq   #1,%d1
@@ -12137,16 +12125,6 @@ sg_dkp:
         bsr     sg_kenc
         addq.l  #8,%sp
         clr.l   sg_fkx
-        tst.l   sg_full                 | Tracks: "LENGTHS 32" in the lengths view, "ZOOM 32" looped
-        beq.s   9f                      | (build 166)
-        tst.l   sg_view
-        bne.s   9f
-        tst.l   sg_flen
-        beq.s   9f
-        lea     sg_fzl,%a0
-        move.l  sg_zn,%d0
-        bsr     sg_cmsg
-        bsr     sg_now
 9:      rts
 8:      movea.l sg_eksv+12,%a0
         jmp     (%a0)
@@ -13760,9 +13738,8 @@ sg_fhdr:
         lea     sg_nm,%a1
         bsr     sg_tx
 2:      move.l  sg_zn,-(%sp)            | at the right (build 96): the steps in view, the pattern playing,
-        move.l  sg_step,%d0             | the cursor's step, the zoom -- "33-64 A01 S05 32/R" (the
-        addq.l  #1,%d0                  | timeline without the steps; the step after the pattern since
-        move.l  %d0,-(%sp)              | build 108)
+        move.l  sg_zn,-(%sp)            | the zoom -- "33-64 A01 32/R" (the timeline without the steps;
+                                        | the cursor's step, S05, gone in 167: only the lock window's)
         moveq   #0,%d0
         move.b  0x100b14d0,%d0
         moveq   #15,%d1
@@ -13818,26 +13795,137 @@ sg_fhdr:
         lea     12(%sp),%sp
         rts
 
-| The full 8-track window's title row (build 100): at the left the arrangement row playing ("R01",
-| arranging), TRKS: and the name, the pattern, and when one is to come two play triangles, that pattern
-| and its countdown (the bars left, "--" stopped; both flash as the panel's line 2 does) -- "R01 TRKS: T1
-| A01 3 ... >>A02", the pattern to come in the top right corner; in the right column the cursor's step
-| ("S01", first row), the window in view of the pattern's ("1/2", second) and the zoom ("32/R", foot). A message (undo, CLEAR?, ZOOM) takes the left as ever. Uses d0 d1 a0 a1.
+| The 8-track window's title row (build 167, Zach's mock): at the left MIDI: / AUD: and the track's
+| name tight after the colon (cut to what fits); at the right, from the right edge: the four page boxes
+| (Pitch's, x 104 + 6 p, rows 2-5; the pages in view filled), the pattern playing -- with one to come,
+| "A03>>A04", the >> giving way to the bars left, inverted, on the pattern flash (sg_mbk bit 5; "--"
+| stopped) -- and the arrangement row, "R00", arranging. Each track's length at the right of its row
+| (the cursor's step, the window "1/2" and the zoom "32/R" there until 166). A message (undo, CLEAR?,
+| ZOOM) takes the left as ever. a2 the pattern. Uses d0 d1 a0 a1.
 sg_fhdt:
-        lea     -16(%sp),%sp
-        movem.l %d2-%d5,(%sp)
-        moveq   #1,%d4                  | d4: x
-        tst.l   sg_umt
-        ble.s   1f
+        lea     -28(%sp),%sp
+        movem.l %d2-%d7/%a3,(%sp)
+        moveq   #0,%d6                  | the page boxes
+.Lfh_b: move.l  %d6,%d0
+        mulu.w  #6,%d0
+        addi.l  #104,%d0
+        moveq   #2,%d1
+        moveq   #4,%d2
+        add.l   %d0,%d2
+        moveq   #5,%d3
+        move.l  %d0,-(%sp)
+        bsr     sg_pf
+        move.l  (%sp)+,%d0
+        moveq   #63,%d1                 | in view: the window's first page .. its last
+        and.l   sg_fwin,%d1
+        lsr.l   #4,%d1
+        cmp.l   %d1,%d6
+        blt.s   1f
+        moveq   #63,%d1
+        and.l   sg_fwin,%d1
+        add.l   sg_zn,%d1
+        lsr.l   #4,%d1
+        cmp.l   %d1,%d6
+        blt.s   2f
+1:      addq.l  #1,%d0                  | the others hollow
+        moveq   #3,%d1
+        moveq   #2,%d2
+        add.l   %d0,%d2
+        moveq   #4,%d3
+        bsr     sg_clr
+2:      addq.l  #1,%d6
+        moveq   #4,%d0
+        cmp.l   %d0,%d6
+        blt.s   .Lfh_b
+        moveq   #101,%d4                | d4: the right part's left edge, built leftward
+        bsr     sg_queue                | a pattern to come: "A04", the >> cell, then this one
+        tst.l   %d0
+        bmi     .Lfh_p
+        move.l  %d0,%d5                 | d5: it, d3: the steps until it
+        move.l  %d1,%d3
+        move.l  %d5,%d0
+        bsr     sg_fhpn
+        bsr     sg_fhrx
+        move.l  %d4,%d7                 | d7: the cell's x (8 px, its glyphs' x0 + 1)
+        subq.l  #4,%d7
+        moveq   #32,%d0                 | the flash: the bars left, inverted
+        and.l   sg_mbk,%d0
+        beq.s   3f
+        pea     sg_f3d
+        tst.l   %d3
+        bmi.s   4f
+        addq.l  #4,%sp
+        moveq   #15,%d0
+        add.l   %d0,%d3
+        asr.l   #4,%d3
+        moveq   #99,%d0
+        cmp.l   %d0,%d3
+        ble.s   5f
+        move.l  %d0,%d3
+5:      move.l  %d3,-(%sp)
+        pea     sg_fsd
+        pea     sg_b1
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        bra.s   6f
+4:      pea     sg_b1
+        jsr     SG_SPRINTF
+        addq.l  #8,%sp
+6:      lea     SG_SMALL,%a0
+        lea     sg_b1,%a1
+        bsr     sg_wid
+        moveq   #7,%d1                  | centred in the cell
+        sub.l   %d0,%d1
+        asr.l   #1,%d1
+        add.l   %d7,%d1
+        move.l  %d1,%d0
+        lea     SG_SMALL,%a0
+        lea     sg_b1,%a1
+        moveq   #57,%d1
+        moveq   #1,%d2
+        bsr     sg_tx
+        bra.s   7f
+3:      move.l  %d7,%d0                 | else >>
+        bsr     sg_tri
+        move.l  %d7,%d0
+        addq.l  #4,%d0
+        bsr     sg_tri
+7:      move.l  %d7,%d4                 | this pattern before the cell, a pixel apart
+        subq.l  #1,%d4
+.Lfh_p: moveq   #0,%d0                  | the pattern playing
+        move.b  0x80000002,%d0
+        lsl.l   #4,%d0
+        moveq   #0,%d1
+        move.b  0x100b14d0,%d1
+        or.l    %d1,%d0
+        bsr     sg_fhpn
+        bsr     sg_fhrx
+        bsr     sg_arr                  | arranging: "R00"
+        tst.l   %d1
+        bmi.s   1f
+        move.l  %d1,-(%sp)
+        pea     sg_fr1
+        pea     sg_b1
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        bsr     sg_fhrx
+1:      tst.l   sg_umt                  | the left: a message, or MIDI: / AUD: and the name
+        ble.s   2f
         lea     SG_SMALL,%a0
         moveq   #2,%d0
         moveq   #57,%d1
         moveq   #1,%d2
         lea     sg_umsg,%a1
         bsr     sg_tx
-        bra     .Lsg_fhr
-1:      lea     sg_ftk,%a1              | "TRKS:" and the name (the row in the right column, build 101)
-        bsr     sg_fht
+        bra     .Lfh_l
+2:      lea     SG_SMALL,%a0
+        lea     sg_ftk,%a1
+        moveq   #1,%d0
+        moveq   #57,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+        move.l  %d0,%d7                 | d7: the name's x, a pixel past the colon
+        addq.l  #2,%d7
         bsr     sg_nget
         lea     sg_nm,%a0               | (its trailing spaces left out)
         lea     sg_b2,%a1
@@ -13854,36 +13942,53 @@ sg_fhdt:
         cmp.l   %d2,%d0
         blt.s   5b
 6:      clr.b   1(%a1,%d1.l)
-        bsr     sg_fht
-        moveq   #0,%d0                  | the pattern
-        move.b  0x100b14d0,%d0
-        moveq   #15,%d1
-        and.l   %d1,%d0
-        addq.l  #1,%d0
-        move.l  %d0,-(%sp)
-        moveq   #0,%d0
-        move.b  0x80000002,%d0
-        addi.l  #65,%d0
-        move.l  %d0,-(%sp)
-        pea     sg_fpt
+8:      lea     SG_SMALL,%a0            | cut to what fits before the right part
+        lea     sg_b2,%a1
+        bsr     sg_wid
+        add.l   %d7,%d0
+        cmp.l   %d4,%d0
+        ble.s   9f
+        lea     sg_b2,%a0
+1:      tst.b   (%a0)+
+        bne.s   1b
+        subq.l  #2,%a0
+        cmpa.l  #sg_b2,%a0
+        blt.s   9f
+        clr.b   (%a0)
+        bra.s   8b
+9:      lea     SG_SMALL,%a0
+        lea     sg_b2,%a1
+        move.l  %d7,%d0
+        moveq   #57,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+.Lfh_l: moveq   #0,%d7                  | each track's length at the right of its row
+1:      move.l  %d7,%d1
+        bsr     sg_trk
+        move.l  %d6,-(%sp)
+        pea     sg_fsd
         pea     sg_b1
         jsr     SG_SPRINTF
-        lea     16(%sp),%sp
-        lea     sg_b1,%a1
-        bsr     sg_fht
-        bsr     sg_queue                | the one to come
-        tst.l   %d0
-        bmi     .Lsg_fhr
-        move.l  %d0,%d5                 | d5: it, d3: the steps until it
-        move.l  %d1,%d3
-        moveq   #32,%d0                 | (flashing: left out in the blink's off phase)
-        and.l   sg_bk,%d0
-        bne     .Lsg_fhr
-        moveq   #15,%d0                 | that pattern in the top right corner (build 100), two
-        and.l   %d5,%d0                 | triangles before it
-        addq.l  #1,%d0
-        move.l  %d0,-(%sp)
-        move.l  %d5,%d0
+        lea     12(%sp),%sp
+        moveq   #50,%d5
+        move.l  %d7,%d0
+        mulu.w  #7,%d0
+        sub.l   %d0,%d5
+        bsr     sg_fhrt
+        addq.l  #1,%d7
+        moveq   #8,%d0
+        cmp.l   %d0,%d7
+        blt.s   1b
+        movem.l (%sp),%d2-%d7/%a3
+        lea     28(%sp),%sp
+        rts
+
+| d0 = bank << 4 | pattern: "A03" into sg_b1. Uses d0 d1 a0 a1.
+sg_fhpn:
+        moveq   #15,%d1
+        and.l   %d0,%d1
+        addq.l  #1,%d1
+        move.l  %d1,-(%sp)
         lsr.l   #4,%d0
         moveq   #15,%d1
         and.l   %d1,%d0
@@ -13893,108 +13998,26 @@ sg_fhdt:
         pea     sg_b1
         jsr     SG_SPRINTF
         lea     16(%sp),%sp
-        move.l  %d3,-(%sp)
-        moveq   #57,%d5
-        bsr     sg_fhrt
-        move.l  (%sp)+,%d3
-        move.l  %d4,%d0
-        subi.l  #10,%d0
-        bsr     sg_tri
-        move.l  %d4,%d0
-        subq.l  #6,%d0
-        bsr     sg_tri
-        tst.l   %d3                     | the bars left, rounded up, in a 4-place count before the
-        bpl.s   3f                      | triangles: "4321>>A02", the count's place moving right as it
-        pea     sg_f3d                  | falls, 1 against them (build 101); more than 4 at the 4's
-        pea     sg_b1                   | place, "--" stopped
-        jsr     SG_SPRINTF
-        addq.l  #8,%sp
-        moveq   #1,%d3
-        bra.s   4f
-3:      moveq   #15,%d0
-        add.l   %d0,%d3
-        asr.l   #4,%d3
-        move.l  %d3,-(%sp)
-        pea     sg_fsd
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-        moveq   #4,%d0
-        cmp.l   %d0,%d3
-        ble.s   4f
-        move.l  %d0,%d3
-4:      tst.l   %d3                     | d3: its place, 1-4: its right edge at x - 12 - 4 (place - 1)
-        bgt.s   5f
-        moveq   #1,%d3
-5:      subq.l  #1,%d3
-        lsl.l   #2,%d3
-        subi.l  #11,%d4
-        sub.l   %d3,%d4                 | d4: past its right edge
+        rts
+
+| sg_b1 on the title row, its right edge at x d4; d4 = its x less 4 (the next one's right edge). Uses
+| d0 d1 a0 a1.
+sg_fhrx:
         lea     SG_SMALL,%a0
         lea     sg_b1,%a1
         bsr     sg_wid
         sub.l   %d0,%d4
         lea     SG_SMALL,%a0
+        lea     sg_b1,%a1
         move.l  %d4,%d0
         moveq   #57,%d1
+        move.l  %d2,-(%sp)
         moveq   #0,%d2
-        lea     sg_b1,%a1
         bsr     sg_tx
-.Lsg_fhr:
-        bsr     sg_arr                  | the right column (build 100): the arrangement row playing, "R01",
-        tst.l   %d1                     | at the first track's row (build 101; the title's left in 100),
-        bmi.s   1f                      | arranging
-        move.l  %d1,-(%sp)
-        pea     sg_fr1
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-        moveq   #50,%d5
-        bsr     sg_fhrt
-1:      move.l  sg_step,%d0             | the cursor's step, "S01", at the second (the first in 100)
-        addq.l  #1,%d0
-        move.l  %d0,-(%sp)
-        pea     sg_fh4
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-        moveq   #43,%d5
-        bsr     sg_fhrt
-        move.l  sg_zn,%d2               | the window in view of the pattern's, "1/2", at the second's
-        moveq   #63,%d0
-        and.l   sg_fwin,%d0
-        divu.l  %d2,%d0                 | (the window: its first step / the steps a row)
-        addq.l  #1,%d0
-        movea.l %a2,%a0
-        adda.l  #0x8e53,%a0
-        moveq   #0,%d1
-        move.b  (%a0),%d1               | the pattern's length (64 when 0)
-        bne.s   5f
-        moveq   #64,%d1
-5:      add.l   %d2,%d1
-        subq.l  #1,%d1
-        divu.l  %d2,%d1
-        cmp.l   %d0,%d1
-        bge.s   6f
-        move.l  %d0,%d1
-6:      move.l  %d1,-(%sp)
-        move.l  %d0,-(%sp)
-        pea     sg_fh5
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     16(%sp),%sp
-        moveq   #36,%d5                 | (at the third, build 101)
-        bsr     sg_fhrt
-        move.l  sg_zn,-(%sp)            | the zoom, in the right column's foot
-        pea     sg_fzz
-        pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     12(%sp),%sp
-        moveq   #1,%d5
-        bsr     sg_fhrt
-        movem.l (%sp),%d2-%d5
-        lea     16(%sp),%sp
+        move.l  (%sp)+,%d2
+        subq.l  #4,%d4
         rts
+
 sg_fht:                                 | a1 at x d4 on the title row; d4 on past it and 4 px
         lea     SG_SMALL,%a0
         move.l  %d4,%d0
@@ -14290,8 +14313,8 @@ sg_fr1: .asciz  "R%02d"
 sg_fr2: .asciz  "X%d"
 sg_fr3: .asciz  "%02d:"                 | the offset and length, "00:16" (OF0 LN16 until build 113)
 sg_fr4: .asciz  "%02d"
-sg_fhd1: .asciz "%d-%d %c%02d S%02d %d/R"
-sg_fhd2: .asciz "%c%02d S%02d %d/R"
+sg_fhd1: .asciz "%d-%d %c%02d %d/R"
+sg_fhd2: .asciz "%c%02d %d/R"
 sg_fhd3: .asciz "%d-%d S%02d"             | (the 8-track window's, build 100)
 sg_fh4: .asciz  "S%02d"                 | (its right column, build 100)
 sg_fh5: .asciz  "%d/%d"
@@ -14305,7 +14328,6 @@ sg_fnl: .ascii  "NOTE\0\0\0\0"            | 8 bytes each (build 90)
         .ascii  "NOT3\0\0\0\0"
         .ascii  "NOT4\0\0\0\0"
 sg_fzm: .asciz  "ZOOM"
-sg_fzl: .asciz  "LENGTHS"
 sg_fnq: .asciz  "CLEAR? YES"
 sg_fcp: .asciz  "COPY"
 sg_fcc: .asciz  "CLEAR"
@@ -14372,7 +14394,7 @@ sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
 sg_lkau: .long  0                       | sg_aud when it opened (build 160)
 sg_mpc: .long   0                       | MIDI Pages' panel column (build 165)
-sg_flen: .long  0                       | 1: Tracks shows each track's own steps, not looped (build 166)
+sg_flen: .long  1                       | 1: Tracks shows each track's own steps, not looped (166; always since 167)
 sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
 sg_lkhr: .long  -1                      | its line inverted, -1 none
 sg_lky0: .long  47                      | the first line's bottom, from the foot
@@ -14408,7 +14430,7 @@ sg_omp: .long   2                       | the MIDI side's page before it (0-4)
 sg_oap: .long   0                       | the audio side's page before it (0-4, build 149)
 sg_ofull: .long 0                       | the full view before it
 sg_pgk: .byte   0x22, 0x24, 0x23, 0x25, 0x26 | page 0-4 -> its key (build 108)
-sg_fpv: .asciz  "PITCH T%d %s%s S%02d"
+sg_fpv: .asciz  "PITCH T%d %s%s"
 sg_fpr: .asciz  "%c%02d"
 sg_fro: .asciz  "ROLL"
 sg_ftr: .asciz  "TRIGS %s%s"

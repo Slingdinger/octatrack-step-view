@@ -82,50 +82,32 @@ were on, in the mode you were in.
 
 All 8 tracks, one row each. Use it to place trigs quickly and see what every track is doing.
 
-![Tracks, the audio side](docs/screens/tracks-audio.png)
-*The 8 audio tracks, 32 steps a row: AUD in the title.*
-
 ![Tracks, 32 steps a row](docs/screens/tracks-32.png)
-*The 8 MIDI tracks, 32 steps a row (the default).*
+*The 8 MIDI tracks, 32 steps a row (the default), each a different length.*
 
-![Tracks, 16 steps a row](docs/screens/tracks-16.png)
-*16 steps a row: press encoder D.*
-
-![Tracks while playing](docs/screens/tracks-playing.png)
-*Playing: the play position is marked on every track.*
-
-![Tracks, arranger on](docs/screens/tracks-arranger.png)
-*Arranger on: the arrangement row (R00) at the top right. While playing, the title also counts down the
-bars to the next row.*
+![Tracks, the audio side](docs/screens/tracks-audio.png)
+*The 8 audio tracks: AUD in the title.*
 
 How to read it:
 
 - **Tall bar** = a trig. **Short bar** = a trigless trig. **Line** = an empty step.
-- Tracks can be different lengths (SCALE set to PER TRACK). A track shorter than the row repeats to
-  fill it, the way it loops when it plays, or stops at its end in the lengths view (see below). In
-  Split, steps past a track's end are blank.
+- Each row shows **only that track's own steps**, and **its length** is at the right end of the row.
+  Tracks can be different lengths (SCALE set to PER TRACK); the rest of a shorter track's row is blank.
 - The track number at the left is **inverted** for the active track and flashes **M** when the track
   is muted.
-- At the right: the cursor's step (S01) and which part of the pattern you're looking at (1/2). The
-  zoom is at the bottom (32/R = 32 steps a row).
+- **The title**: MIDI: or AUD: and the track's name at the left. At the right: the arrangement row
+  (R00, with the arranger on), the pattern playing (A03), and four boxes for the pattern's four pages,
+  the ones on screen filled.
+- **A pattern coming up** shows as **A03>>A04**. In time with the tempo, the >> swaps for the number of
+  bars left, inverted (A03 **3** A04), counting down to the change; "--" while stopped.
 
-**Different track lengths.** Each track loops at its own length. Tracks has two ways to show it, and
-**encoder D** cycles through them with the zoom: 32 steps a row, 16, then the lengths view at 32 and
-16, then back.
+![Tracks, 16 steps a row](docs/screens/tracks-16.png)
+*16 steps a row: press encoder D. Track 1 is 16 steps, track 2 is 12, track 3 is 8, down to track 7 at
+3; track 8 is 64, so it carries on over the next pages.*
 
-- **Looped** (the default): a track shorter than the row starts again right after its last step, the
-  way it plays.
-- **Lengths** ("LENGTHS 32" shows when you switch to it): each track shows only its own steps, and the
-  rest of the row is blank, so you can see where each one ends.
-
-![Tracks with eight different lengths](docs/screens/tracks-lengths.png)
-*Eight tracks of different lengths, each with one trig on its first step, 16 steps a row. Track 1 is 16
-steps long, so its trig shows once. Track 2 is 12, so its trig comes back on step 13. Track 3 is 8 (steps
-1 and 9), track 4 is 6 (1, 7, 13), track 5 is 5 (1, 6, 11, 16), track 6 is 4, and track 7 is 3 (every
-third step). Track 8 is 64, so the rest of its loop is on the next three pages.*
-
-![Tracks, the lengths view](docs/screens/tracks-lengths-own.png)
-*The same eight tracks in the lengths view: each row stops at its track's last step.*
+![Tracks while playing, a pattern coming up](docs/screens/tracks-playing.png)
+*Playing, with A04 queued: the countdown (6 bars) in place of the >>. The page boxes show the second
+half of the pattern on screen.*
 
 **Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),
@@ -199,7 +181,7 @@ How to read it:
 - A small arrow means a note that's **above or below** what's on screen. It sits on the row with the
   same letter, or on the top or bottom row when that letter has no row on screen.
 - Dotted rows are the sharps.
-- The title shows the cursor's note and step (C3 S01), the pattern, and which of the four pages you're on.
+- The title shows the cursor's note (C3), the pattern, and which of the four pages you're on.
 
 Moving around:
 
@@ -219,7 +201,7 @@ Moving around:
 
 ### 4. Split: the numbers, for the arranger
 
-The screen split in two: the grid on the right, and on the left a column with the cursor's step, the
+The screen split in two: the grid on the right, and on the left a column with the cursor step's trig, the
 pattern cues (the pattern playing and the one coming, beside the grid) and the play clock at the bottom.
 It was designed as the arranger's companion, and follows it: turn the arranger on or off and Split
 switches with it.
@@ -229,11 +211,11 @@ switches with it.
   playing and the pattern of this row and the next, and mute the row. Each pattern's cue sits on the
   left at the row where it starts. Save the arrangement from the ARR menu.
 
-The left column shows the cursor's step and its trig (TRIG, TRIGLESS or NO TRIG), on both sides. **YES**
-on a step opens its [lock window](#the-lock-window).
+The left column's top line shows the cursor step's trig (TRIG, TRIGLESS or NO TRIG), on both sides.
+**YES** on a step opens its [lock window](#the-lock-window), which also shows the step's number.
 
 ![Split with the MIDI tracks](docs/screens/panel.png)
-*MIDI track 1, step 1: a trig. A03 is playing and repeats (∞).*
+*MIDI track 1, the cursor on a step with a trig. A03 is playing and repeats (∞).*
 
 ![Split with the audio tracks](docs/screens/split-audio.png)
 *The same on the audio tracks.*
@@ -243,9 +225,9 @@ on a step opens its [lock window](#the-lock-window).
 the next row's pattern (2 = its repeats), and A04 and A03 further down mark where those rows start.*
 
 **The left column's lines (MIDI).** Press an arrow past the edge of the grid's page and the cursor moves
-into the left column, onto STEP. **UP / DOWN** pick a line (STEP, the arrangement's lines with the
-arranger on, and the track's name in the grid's title), **LEFT / RIGHT** move along it, and **LEVEL**
-changes it. **RIGHT** past the end of a line, or **NO**, goes back to the grid.
+into the left column, onto the nearest value: the track's name (in the grid's title) with the arranger
+off; with it on, this row's pattern line or the next one's, whichever is closer to the cursor's row.
+**UP / DOWN** pick a line, **LEFT / RIGHT** move along it, and **LEVEL** changes it. **RIGHT** past the end of a line, or **NO**, goes back to the grid.
 
 **Zoomed timeline.** With the arranger on, press **encoder D** to show 4, 8 or 16 steps a row. **UP /
 DOWN** move one row at a time.
@@ -307,7 +289,7 @@ lock values on that step as usual.
 
 | View | Press D |
 |---|---|
-| **Tracks** | 32 → 16 steps a row → the lengths view at 32 → 16 → back |
+| **Tracks** | Zoom: 16 ↔ 32 steps a row |
 | **Pages** | Zoom: 16 ↔ 32 steps a row |
 | **Pitch** | Next layout: ROLL 16 → ROLL 32 → KEYS 16 |
 | **Split** (arranger on) | Zoom the timeline: 4 → 8 → 16 steps a row |
@@ -345,8 +327,8 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 ### Track names (MIDI)
 
 Each MIDI track can have a 12-character name, per Part and bank. It shows in the grid's title in place
-of T1-T8. To set it in Split, press LEFT at the grid's first step to move into the left column, then
-UP onto the name. Hold **FUNC** for a
+of T1-T8. To set it in Split (arranger off), press LEFT at the grid's first step: the cursor lands on
+the name. Hold **FUNC** for a
 keyboard of characters. Names are saved with the project.
 
 ---

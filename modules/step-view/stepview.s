@@ -194,10 +194,10 @@ sg_poll:
         beq.s   0f
         jsr     tm_poll
 0:      jsr     sg_bsync                | the views' settings and BRAIN's table (build 137; jsr since 158: a bsr this far wrapped, silently, into OCTA303's tables)
-        bsr     sg_clock
-        bsr     sg_here
+        jsr     sg_clock
+        jsr     sg_here
         beq     0f
-        bsr     sg_ptoff                | (the pitch view's trig keys the stock's again, build 131)
+        jsr     sg_ptoff                | (the pitch view's trig keys the stock's again, build 131)
         jsr     sg_fkout                | (encoder F's press the stock's again, build 143)
         jsr     sg_ekout                | (A-E's presses the stock's again)
         tst.l   sg_own                  | the page left another way (a page key, MIDI): MIXER + MIDI's
@@ -207,27 +207,27 @@ sg_poll:
         subq.l  #1,sg_ownw
         bra     9f
 1:      clr.l   sg_own
-        bsr     sg_aoff
+        jsr     sg_aoff
         clr.l   sg_pv
         move.l  sg_ofull,%d0
         move.l  %d0,sg_full
         bra     9f
 0:      clr.l   sg_ownw
-        bsr     sg_free                 | a menu or popup open (build 75): the page keeps still and the
+        jsr     sg_free                 | a menu or popup open (build 75): the page keeps still and the
         beq.s   0f                      | screen-changed flag is set every tick, as the stock's tempo
         moveq   #1,%d0                  | drawer does on the other pages (it is off on this one), so the
         move.l  %d0,0x46c7c72c          | window's own redraws reach the panel
         moveq   #0,%d1                  | -- and the page redrawn if the stock drew on it under the window
-        bsr     sg_run                  | (build 145: RELOAD's popup left the ARP page's bottom bar, its
+        jsr     sg_run                  | (build 145: RELOAD's popup left the ARP page's bottom bar, its
         bra     9f                      | title and scenes, under it; sg_run's plane checksum sees that)
 0:      bsr     sg_vwin                 | the panel view's window: the arranger's (build 141; AUDIO: the
                                         | MIDI key's and trig keys' LEDs the stock's, audio mode's, build 149)
-        bsr     sg_drest                | the MIDI activity dots: the page's pixels back (build 71)
+        jsr     sg_drest                | the MIDI activity dots: the page's pixels back (build 71)
         addq.l  #1,sg_bk                | the cursor's blink
-        bsr     sg_flash                | its bits 4 and 5 from the tempo (build 126)
+        jsr     sg_flash                | its bits 4 and 5 from the tempo (build 126)
         tst.l   sg_nconf                | NO's question: gone with the cursor moved (build 91)
         beq.s   1f
-        bsr     sg_nask
+        jsr     sg_nask
 1:      tst.l   sg_umt                  | the undo message's time
         ble.s   1f
         subq.l  #1,sg_umt
@@ -238,10 +238,10 @@ sg_poll:
         moveq   #-1,%d0
         move.l  %d0,sg_sela
 1:
-        bsr     sg_tkey
-        bsr     sg_kpage
-        bsr     sg_thold
-        bsr     sg_ptrg                 | the pitch view's trig keys and their LEDs (build 126)
+        jsr     sg_tkey
+        jsr     sg_kpage
+        jsr     sg_thold
+        jsr     sg_ptrg                 | the pitch view's trig keys and their LEDs (build 126)
         jsr     sg_fkin                 | encoder F's press ours (build 143)
         jsr     sg_ekin                 | and A-E's: the hidden page's reset
         tst.l   sg_tnum                 | the track number: only in TRKS, on step 1 (build 143)
@@ -252,13 +252,13 @@ sg_poll:
         beq.s   .Lpl_t
 .Lpl_c: clr.l   sg_tnum
 .Lpl_t:
-        bsr     sg_fkb
-        bsr     sg_lkfn                 | (the lock window: FUNC down or up redraws it, build 159)
-        bsr     sg_utick
-        bsr     sg_stopk
+        jsr     sg_fkb
+        jsr     sg_lkfn                 | (the lock window: FUNC down or up redraws it, build 159)
+        jsr     sg_utick
+        jsr     sg_stopk
         tst.l   sg_hk
         beq.s   2f
-        bsr     sg_keyok
+        jsr     sg_keyok
         bne.s   1f
         move.l  sg_hk,%d0
         moveq   #24,%d1
@@ -373,12 +373,8 @@ sg_tsel:
 | d1 = 1 (Z clear) when the panel is up: the view, audio mode, AUDIO, the full view's Pages, the
 | arranger off, not the pitch view. Keeps d0. Uses d1.
 sg_apon:
-        moveq   #0,%d1
+        moveq   #0,%d1                  | (both sides since build 165; AUDIO only, audio mode, 157-164)
         tst.l   sg_own
-        beq.s   9f
-        tst.l   0x80000012
-        bne.s   9f
-        tst.l   sg_aud
         beq.s   9f
         tst.l   sg_full
         beq.s   9f
@@ -432,12 +428,7 @@ sg_apanel:
         tst.l   SG_HELD+0x2d*24         | columns, three lines (rows 35-53, "+n" past them), the names on
         beq.s   1f                      | rows 58-62, the stock's page's column inverted; FUNC: the values
         moveq   #1,%d7
-1:      move.l  0x460d1684,%d0
-        moveq   #4,%d1
-        cmp.l   %d1,%d0
-        bls.s   2f
-        moveq   #2,%d0
-2:      bsr     sg_lkpg                 | (the column of a page: the same swap)
+1:      bsr     sg_apcol                | the column the knobs are on
         move.l  %d0,sg_lkhc
         moveq   #-1,%d0
         move.l  %d0,sg_lkhr
@@ -470,15 +461,24 @@ sg_apanel:
         lea     44(%sp),%sp
         rts
 
+| d0 = the panel's column: AUDIO, the stock's page's (its page keys pick it); MIDI, sg_mpc (the page
+| keys ours, sg_pkey; build 165). Uses d0 d1 a0.
+sg_apcol:
+        tst.l   sg_aud
+        bne.s   1f
+        move.l  sg_mpc,%d0
+        rts
+1:      move.l  0x460d1684,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bls.s   2f
+        moveq   #2,%d0
+2:      bra     sg_lkpg
+
 | A knob in APGS without a trig held (sg_kenc's frame; build 162): the lock window's knob on the stock's
 | page's column -- that parameter locked on the cursor's step.
 sg_apke:
-        move.l  0x460d1684,%d0
-        moveq   #4,%d1
-        cmp.l   %d1,%d0
-        bls.s   1f
-        moveq   #2,%d0
-1:      bsr     sg_lkpg
+        bsr     sg_apcol
         move.l  %d0,sg_lkc
         bra     sg_lkenc
 
@@ -1048,9 +1048,12 @@ sg_thold:
         move.l  %d1,sg_th
         moveq   #1,%d0
         move.l  %d0,sg_mode
-        moveq   #SG_PN,%d0              | NOTE
+        moveq   #SG_PN,%d0              | NOTE (LEVEL with the trig held: its note, sg_lvlh)
         move.l  %d0,sg_prm
-        clr.l   sg_idle
+        tst.l   sg_win                  | the lock window over it (build 165: the panel's notes gone)
+        bne.s   0f
+        jsr     sg_lkini
+0:      clr.l   sg_idle
         clr.l   sg_bk
 9:      rts
 
@@ -1196,11 +1199,28 @@ sg_pkey:
 .Lpk_x: rts
 .Lpk_0: tst.l   sg_own
         beq.s   8f
-        moveq   #1,%d0
+        bsr     sg_apon                 | MIDI's Pages panel (build 165): a page key its column, press and
+        beq.s   .Lpk_1                  | release eaten (a MIDI page key would leave the ARP page and the
+        tst.l   sg_aud                  | view)
+        bne.s   .Lpk_1
+        move.l  4(%sp),%d0
+        subi.l  #0x22,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bhi.s   .Lpk_1
+        moveq   #1,%d1
+        cmp.l   8(%sp),%d1
+        bne.s   .Lpk_y
+        move.l  %d0,sg_mpc
+        clr.l   sg_idle
+        bra     sg_now
+.Lpk_y: rts
+.Lpk_1: moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne.s   8f
         bsr     sg_apon                 | APGS's panel (build 157): the page key the stock's, the panel's
         bne.s   8f                      | page; the view stays
+0:
         lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
         bsr     sg_mxout
@@ -1753,7 +1773,7 @@ sg_mv:
         bne     sg_now
         moveq   #1,%d0
         move.l  %d0,sg_mode
-        moveq   #SG_PN,%d0
+        moveq   #SG_PS,%d0              | (on STEP since build 165: the notes' lines are gone)
         move.l  %d0,sg_prm
         clr.l   sg_hk
         bra     6f
@@ -1896,10 +1916,7 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         addq.l  #8,%sp
         move.l  0x460d5de0,%d0          | (the time, for a second press: build 90)
         move.l  %d0,sg_ytk
-        moveq   #1,%d0
-        move.l  %d0,sg_mode
-        moveq   #SG_PN,%d0              | the panel starts on NOTE
-        move.l  %d0,sg_prm
+        jsr     sg_lkini                | the lock window (build 165; the panel on NOTE until 164)
         clr.l   sg_idle
         bsr     sg_now
 7:      rts
@@ -2192,6 +2209,9 @@ sg_pmove:
 | d3 = a panel line: Z clear when it is not shown: ROW and the two pattern lines need the arrangement
 | on (ROW since build 69, the patterns since 78), SAVE an unsaved arrangement (78). Uses d0 a0.
 sg_lhid:
+        moveq   #6,%d0                  | the notes, VEL, LEN: not shown since build 165
+        cmp.l   %d0,%d3
+        bge.s   9f
         moveq   #1,%d0
         cmp.l   %d0,%d3
         blt.s   8f
@@ -5703,8 +5723,8 @@ sg_panel:
         lea     sg_b1,%a1
         bsr     sg_tx
 
-        tst.l   sg_aud                  | AUDIO (build 158): the audio step's trig and locks instead
-        bne     .Lsg_paud
+        bra     .Lsg_paud               | the step's trig, both sides (build 165: the MIDI notes, VEL and
+                                        | LEN gone, the lock window has them; AUDIO since 158)
         bsr     sg_sel                  | the cursor step's values
         movea.l %a2,%a3                 | a3: its locks
         movea.l %a0,%a4                 | a4: the Part's
@@ -5921,8 +5941,12 @@ sg_panel:
         lea     sg_fatr,%a0             | TRIG / TRIGLESS / NO TRIG
         btst    %d0,(0,%a1,%d2.l)
         bne.s   1f
+        move.l  %d0,-(%sp)              | (MIDI's trigless mask at +0x10, build 165)
+        bsr     sg_tlo
+        adda.l  %d0,%a1
+        move.l  (%sp)+,%d0
         lea     sg_fatl,%a0
-        btst    %d0,(8,%a1,%d2.l)
+        btst    %d0,(0,%a1,%d2.l)
         bne.s   1f
         lea     sg_fatn,%a0
 1:      movea.l %a0,%a1
@@ -7211,7 +7235,11 @@ sg_kenc:
         tst.l   sg_fkx                  | (encoder D's press, as F turned: the zoom, build 164 -- 162-163
         bne.s   .Lke_np                 | locked XVOL)
         bsr     sg_tkd                  | (build 162: a held trig the stock's; FUNC nothing; else the
-        bne     8f                      | cursor step's lock, sg_apke)
+        beq.s   0f                      | cursor step's lock, sg_apke)
+        tst.l   sg_aud                  | (MIDI, a trig held: nothing -- the ARP page's knobs, build 165)
+        bne     8f
+        bra     .Lke_eat
+0:
         tst.l   SG_HELD+0x2d*24
         bne     .Lke_eat
         bra     sg_apke
@@ -8423,6 +8451,14 @@ sg_stdraw:
 |      locks kept), NO out. Writes as sg_aset: the bank and its CS1 copy, the lock mask (+0x10), the
 |      dirty flags, 0x4009da20(t).
 
+| d0 = the trigless mask's offset in the cursor's record: +0x08 audio, +0x10 MIDI (build 165). Uses d0.
+sg_tlo:
+        moveq   #8,%d0
+        tst.l   sg_aud
+        bne.s   9f
+        moveq   #16,%d0
+9:      rts
+
 | d0 = the descriptor's track: the cursor's, + 8 on the MIDI side (FUN_40031da4's MIDI pages; build
 | 160). Uses d0.
 sg_lktk:
@@ -8696,15 +8732,20 @@ sg_lktt:
         asr.l   #3,%d1
         moveq   #7,%d2
         sub.l   %d1,%d2
+        move.l  %d0,-(%sp)              | the trigless mask's byte: + 8 audio, + 16 MIDI (build 165)
+        bsr     sg_tlo
+        add.l   %d2,%d0
+        move.l  %d0,%d1
+        move.l  (%sp)+,%d0
         btst    %d0,(0,%a1,%d2.l)
         beq.s   1f
         bclr    %d0,(0,%a1,%d2.l)
         bclr    %d0,(0,%a3,%d2.l)
-        bset    %d0,(8,%a1,%d2.l)
-        bset    %d0,(8,%a3,%d2.l)
+        bset    %d0,(0,%a1,%d1.l)
+        bset    %d0,(0,%a3,%d1.l)
         bra.s   2f
-1:      bclr    %d0,(8,%a1,%d2.l)
-        bclr    %d0,(8,%a3,%d2.l)
+1:      bclr    %d0,(0,%a1,%d1.l)
+        bclr    %d0,(0,%a3,%d1.l)
         bset    %d0,(0,%a1,%d2.l)
         bset    %d0,(0,%a3,%d2.l)
 2:      bsr     sg_dirty
@@ -9099,8 +9140,12 @@ sg_lkdraw:
         lea     sg_fatr,%a3
         btst    %d0,(0,%a1,%d2.l)
         bne.s   2f
+        move.l  %d0,-(%sp)              | (MIDI's trigless mask at +0x10, build 165)
+        bsr     sg_tlo
+        adda.l  %d0,%a1
+        move.l  (%sp)+,%d0
         lea     sg_fatl,%a3
-        btst    %d0,(8,%a1,%d2.l)
+        btst    %d0,(0,%a1,%d2.l)
         bne.s   2f
         lea     sg_fatn,%a3
 2:      lea     SG_SMALL,%a0
@@ -14298,6 +14343,7 @@ sg_lkc: .long   0                       | the lock window's column 0-4 (build 15
 sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
 sg_lkau: .long  0                       | sg_aud when it opened (build 160)
+sg_mpc: .long   0                       | MIDI Pages' panel column (build 165)
 sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
 sg_lkhr: .long  -1                      | its line inverted, -1 none
 sg_lky0: .long  47                      | the first line's bottom, from the foot

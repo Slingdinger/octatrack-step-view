@@ -6,7 +6,7 @@ On a stock Octatrack, a pattern lives in the 16 trig LEDs and in parameter-lock 
 and one page at a time, a note is a number you dial in, and a step's p-locks stay hidden until you hold
 its trig and look through each page in turn.
 
-STEP VIEW draws the sequences on the screen instead: all 8 tracks at once, a whole 64-step track, a piano
+STEP VIEW draws the sequences on the screen: all 8 tracks at once, a whole 64-step track, a piano
 roll of the notes, or every p-lock on a step. You edit them right there. It works on both sides of the
 Octatrack, the 8 **audio** tracks and the 8 **MIDI** tracks, and **MIDI** switches between them.
 

@@ -35,7 +35,6 @@ Octatrack OS (1.40C, MKI and MKII).
 - [Everything else](#everything-else) (editing, copy / paste, track names)
 - [Settings](#settings-brain--settings--step-view)
 - [Why it works this way](#why-it-works-this-way)
-- [What's being worked on](#whats-being-worked-on)
 - [Adding it to your build](#adding-it-to-your-build)
 
 ---
@@ -418,17 +417,6 @@ it.
   - In the stock SCALE window (FUNC + SCALE / PAGE), **UP / DOWN** move between rows and **SCALE**
     opens ALL TRACK SCALES.
   - Copying a track in grid recording can convert between audio and MIDI tracks.
-
----
-
-## What's being worked on
-
-Planned or being designed, not built yet:
-
-- **Editing several steps at once**, for every value, not just length.
-- **A length window**: an offset for playback, and setting every step's length at once.
-- **A narrower left column in Split**, giving the grid more width (mocked up, on hold).
-- Smaller ideas: a single VIEW setting in place of FULL / PAGES / PITCH, and a quicker way into Split.
 
 ---
 

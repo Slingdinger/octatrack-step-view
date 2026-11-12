@@ -417,15 +417,15 @@ sg_apanel:
         rts
 0:      lea     -44(%sp),%sp
         movem.l %d0-%d7/%a2-%a4,(%sp)
-        moveq   #0,%d0                  | rows 32-63 clear, a line at 32
-        moveq   #32,%d1
+        moveq   #0,%d0                  | rows 25-63 clear, a line at 25 (32 until 163)
+        moveq   #25,%d1
         moveq   #127,%d2
         moveq   #63,%d3
         bsr     sg_clr
         moveq   #0,%d0
-        moveq   #32,%d1
+        moveq   #25,%d1
         moveq   #127,%d2
-        moveq   #32,%d3
+        moveq   #25,%d3
         lea     SG_FILL,%a0
         bsr     sg_r1
         moveq   #0,%d7                  | (build 162) the cursor step's locks in the lock window's five
@@ -441,9 +441,9 @@ sg_apanel:
         move.l  %d0,sg_lkhc
         moveq   #-1,%d0
         move.l  %d0,sg_lkhr
-        moveq   #24,%d0
+        moveq   #31,%d0                 | four lines, rows 28-53 (three, 35-53, until 163)
         move.l  %d0,sg_lky0
-        moveq   #3,%d0
+        moveq   #4,%d0
         move.l  %d0,sg_lknr
         moveq   #1,%d0
         move.l  %d0,sg_lkfy
@@ -456,10 +456,10 @@ sg_apanel:
         bsr     sg_lkdot
         moveq   #26,%d5
 3:      move.l  %d5,%d0
-        moveq   #34,%d1
+        moveq   #27,%d1
         moveq   #0,%d2
         moveq   #2,%d3
-        moveq   #15,%d4
+        moveq   #18,%d4
         bsr     sg_lkdot
         moveq   #25,%d0
         add.l   %d0,%d5
@@ -7208,6 +7208,8 @@ sg_kenc:
         beq     sg_lkenc
         bsr     sg_apon                 | APGS's panel (build 157): A-F the page's (its knobs, a held
         beq.s   .Lke_np                 | trig's locks); FUNC + a knob its SETUP's (sg_apfx, 157-161)
+        tst.l   sg_fkx                  | (encoder D's press, as F turned: the zoom, build 164 -- 162-163
+        bne.s   .Lke_np                 | locked XVOL)
         bsr     sg_tkd                  | (build 162: a held trig the stock's; FUNC nothing; else the
         bne     8f                      | cursor step's lock, sg_apke)
         tst.l   SG_HELD+0x2d*24
@@ -9632,6 +9634,7 @@ sg_fbof:
 | that pattern after it, the cursor's track's length at the right: "A01 ... 3 A02 ... 64".
 | Uses d0 d1 a0 a1.
 sg_pbar:
+        rts                             | (build 164: the bar gone, its rows the grid's and the panel's)
         bsr     sg_fbof
         tst.l   %d0
         beq     9f
@@ -9839,7 +9842,7 @@ sg_frow:
         move.l  sg_rs,%d1
         bsr     sg_fgm
         add.l   (%sp)+,%d0
-        addi.l  #15,%d0
+        addq.l  #8,%d0                  | (15 under the bar until 163)
         rts
 
 | d0 = the margin for a stride d1 (build 114): the blank between a centre line (1 or 2 px) and a row,
@@ -9892,10 +9895,10 @@ sg_fzfit:
         subq.l  #1,%d4
         muls.l  %d2,%d4
         add.l   %d4,%d0
-        addi.l  #18,%d0
-        bsr     sg_apon                 | APGS's panel under the rows (build 157): rows 33-63 are its
-        beq.s   7f
-        moveq   #32,%d1
+        addi.l  #11,%d0                 | (18 under the bar until 163)
+        bsr     sg_apon                 | APGS's panel under the rows (build 157): rows 26-63 are its
+        beq.s   7f                      | (33-63 until 163)
+        moveq   #24,%d1
         bra.s   6f
 7:      moveq   #64,%d1
 6:      cmp.l   %d1,%d0

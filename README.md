@@ -134,7 +134,7 @@ the knobs are on.*
 ![Audio Pages with FUNC held](docs/screens/apgs-panel-values.png)
 *Hold FUNC: the same locks, by value.*
 
-- Each column shows three locks. When there are more, the third line says how many more (**+2**), and
+- Each column shows four locks. When there are more, the fourth line says how many more (**+2**), and
   YES opens the lock window with all of them.
 - The **page keys** (PLAYBACK, AMP, LFO, FX1, FX2) pick which column the knobs work on; its name is
   inverted.
@@ -150,7 +150,6 @@ the knobs are on.*
 ![Pages, 16 steps a row](docs/screens/pages-16.png)
 *16 steps a row: one page per row. Press encoder D to switch.*
 
-- The bar under the title shows the pattern (A03) and the track's length (64).
 - **Knob D** changes the spacing between the rows (10 to start).
 
 **Arranger on: the timeline.** Pages becomes your arrangement, laid out in the order it plays, one page
@@ -287,7 +286,7 @@ six: STEP VIEW locks the notes, VEL and LEN to each step.
 | **YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
 | **NO** | Close the window. |
 
-The same columns, three lines tall, are the bottom half of [audio Pages](#2-pages-one-track-all-64-steps).
+The same columns, four lines tall, are the bottom half of [audio Pages](#2-pages-one-track-all-64-steps).
 
 ---
 

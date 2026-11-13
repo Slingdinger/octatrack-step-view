@@ -129,21 +129,29 @@ the audio side, CLEAR only.
 
 The cursor's track, its four pages stacked. Use it to see a whole long track at once.
 
-**Arranger off: the steps, with the step's p-locks underneath.** The top half shows the track's steps,
-the bottom half the cursor step's p-locks in the [lock window's](#the-lock-window) five columns, on both
-sides.
+**Arranger off: the steps, with the step's parameters underneath.** The top half shows the track's
+steps, the bottom half the cursor step's parameters in the [lock window's](#the-lock-window) five
+columns, on both sides.
 
 ![Audio Pages with the lock panel](docs/screens/apgs-panel.png)
-*Audio track 1, the cursor in the panel: STRT picked on PLAY and being edited (its value, SL1, shown).*
+*Audio track 1, step 33: PTCH and STRT locked on PLAY, VOL on AMP (the dots). The cursor is in the
+panel, editing STRT (its value, SL1, shown).*
+
+![Audio Pages with FUNC held](docs/screens/apgs-panel-values.png)
+*Hold FUNC: the values. A locked parameter shows its lock, the others the Part's value.*
 
 ![MIDI Pages with the lock panel](docs/screens/pages-midi-panel.png)
-*MIDI track 1, step 33: the cursor in the panel on VEL. NOTE, VEL, LEN and three more (+3) on NOTE.*
+*MIDI track 1, step 33: a chord. NOTE, NOT2 and NOT3 (locked: the dots), and three more (+3).*
 
 ![MIDI Pages with FUNC held](docs/screens/pages-midi-panel-values.png)
-*Hold FUNC: the same locks, by value.*
+*Hold FUNC: the same, by value. NOT2-4 show as the notes they play.*
 
-- Each column shows four locks. When there are more, the fourth line says how many more (**+3**); the
-  lock window shows all of them.
+- Each column always shows its most-used parameters, plus any others locked on the step:
+  - MIDI: NOTE VEL LEN, TRAN MODE SPD, SPD1 DEP1, PB AT CC1, CC5 CC6 CC7.
+  - Audio: the first three on PLAY, ATK HOLD VOL, SPD1 DEP1, and the first two of each effect.
+- A **dot** marks a locked parameter. The rest show the Part's value (with FUNC held).
+- A column has four lines. When there are more, the fourth says how many (**+3**); the lock window
+  shows them all.
 - **DOWN** past the grid's last row moves the cursor into the panel. There it works like the lock
   window: the arrows or the page keys pick a lock, **YES** edits it (its value shows, **LEVEL** changes
   it; on MIDI's NOTE column YES opens the note window), and **UP** off the first line goes back to the
@@ -156,13 +164,14 @@ sides.
 **Arranger on: the timeline.** Pages becomes your arrangement, laid out in the order it plays, one page
 per row, for the cursor's track.
 
-![Pages, arranger on: three arrangement rows](docs/screens/pages-arranger-rows.png)
-*Three arrangement rows at once, 16 steps a row: A01 twice, A02 once, A03 twice. Every row's steps for
-the cursor's track, in the order they'll play, without opening a single pattern.*
-
 ![Pages, arranger on: the timeline](docs/screens/pages-arranger.png)
-*The inverted line is an arrangement row's settings: R00 (row 0), A03 (its pattern), X2 (played twice),
-00:00 (offset and length; 0 = the pattern's length), S-/- (no scenes). Under it, that row's pages.*
+*Four arrangement rows, 32 steps a row: A03, A02 twice, A04, A03. Every row's steps for the cursor's
+track, in the order they'll play, without opening a single pattern.*
+
+![Pages, arranger on: 16 steps a row](docs/screens/pages-arranger-rows.png)
+*16 steps a row (press encoder D). Each inverted line is a row's settings: R01 (row 1), A02 (its
+pattern), X2 (played twice), 0016 (offset 0, length 16 steps), S-/- (no scenes). Under it, that row's
+steps.*
 
 Each arrangement row starts with a line of its settings: row number, pattern, repetitions, offset and
 length, scenes, mute. You can change them right there: **LEFT / RIGHT** pick one, **LEVEL** changes it.
@@ -203,7 +212,9 @@ Moving around:
 
 **The trig keys become a keyboard** in this view:
 
-- The 16 trig keys play 16 notes in a row, starting from C.
+- The 16 trig keys play 16 notes in a row, starting from C. Their LEDs light the white keys; in ROLL
+  16 and ROLL 32 they also show the cursor's note and, while playing, the note playing. KEYS 16 keeps
+  them still.
 - Press one to hear it. **FUNC + a trig key** writes that note into the cursor's step.
 - **Knob E** slides the keyboard up and down a semitone, and **FUNC + knob E** an octave.
 - **PATTERN + trig** and **BANK + trig** still pick patterns and banks as usual.
@@ -230,8 +241,8 @@ The left column's top line shows the cursor step's trig (TRIG, TRIGLESS or NO TR
 *The same on the audio tracks.*
 
 ![Split view, arranger on](docs/screens/panel-arranger.png)
-*Playing an arrangement: ROW 00 is the row playing. M ▶A03 is this row's mute and pattern; 2 A02 is
-the next row's pattern (2 = its repeats), and A04 and A03 further down mark where those rows start.*
+*An arrangement: ROW 00 is the row the arranger is on, M A03 its mute and pattern. A04 and A03 further
+down mark where later rows start, beside the timeline.*
 
 **The left column's lines (MIDI).** Press an arrow past the edge of the grid's page and the cursor moves
 into the left column, onto the nearest value: the track's name (in the grid's title) with the arranger
@@ -245,7 +256,7 @@ DOWN** move one row at a time.
 
 ## The lock window
 
-Every p-lock on a step, on one screen. Open it with **YES** on a step:
+Every parameter on a step, on one screen, with its lock or its value. Open it with **YES** on a step:
 
 - **Audio tracks**: YES on a step with a trig or p-locks, in any view. YES on an empty step just puts a
   trig there.
@@ -253,13 +264,15 @@ Every p-lock on a step, on one screen. Open it with **YES** on a step:
   opens the [note window](#the-note-window-midi).)
 
 ![The lock window on an audio step](docs/screens/lock-window.png)
-*Audio track 1, step 1: PTCH and STRT locked on the playback page, VOL on AMP. VOL is picked.*
+*Audio track 1, step 2: PTCH and STRT locked on PLAY, VOL on AMP (the dots). AMP is picked, so it's
+wide, with its values; VOL is the cursor.*
 
 ![The lock window with FUNC held](docs/screens/lock-window-values.png)
-*Hold FUNC: the same locks, by value.*
+*Hold FUNC: the narrow columns show their values too.*
 
 ![The lock window on a MIDI step](docs/screens/lock-window-midi.png)
-*MIDI track 1, step 1: its NOTE page locks (the four notes, VEL and LEN). NOT3 is picked.*
+*MIDI track 1, step 1: a chord. NOTE and NOT2-4 sit together, each shown as the note it plays (C#3,
+C5, G#3, F4), then VEL and LEN.*
 
 There's one column for each page key, in the order the keys sit under the screen:
 
@@ -268,21 +281,35 @@ There's one column for each page key, in the order the keys sit under the screen
 | **Audio tracks** | PLAY (SRC on the MKII) | AMP | LFO | FX1 | FX2 |
 | **MIDI tracks** | NOTE | ARP | LFO | CTL1 | CTL2 |
 
-Each column lists only the parameters locked on that step, by their full names. A page has six
-parameters, so a column never overflows, and a name that appears on two pages (VOL on AMP and on a delay)
-always sits under its own page. On a MIDI step written in STEP VIEW, the NOTE column always lists all
-six: STEP VIEW locks the notes, VEL and LEN to each step.
+How to read it:
+
+- **Every parameter** of each page is listed, locked or not, so you always know where to find one.
+- **The picked column is wide**: names on the left, values on the right. The other four show names.
+- **A dot** marks a parameter locked on this step. Its value is the lock; the others show the
+  Part's value, which is what the step plays.
+- **MIDI's NOTE column** lists NOTE, NOT2, NOT3 and NOT4 together, then VEL and LEN. NOT2-4 show as
+  the notes they play (NOTE plus the offset), "-" when off.
+- **ARP** is shown for reference; the Octatrack can't lock it.
+- **The page key's LED** follows the picked column.
 
 | Action | Result |
 |---|---|
 | A **page key**, or **LEFT / RIGHT** | Pick a column. |
-| **UP / DOWN** | Pick a lock in the column. |
-| **YES** | Edit the picked lock: its value shows, and **LEVEL** changes it. YES again or NO ends the edit. On a MIDI step's NOTE column, YES opens the [note window](#the-note-window-midi) instead. |
+| **UP / DOWN** | Pick a parameter in the column. |
+| **YES** | Edit it: its value inverts, and **LEVEL** changes it (an unlocked one gets locked, starting from the Part's value). YES again or NO ends the edit. On a MIDI step's NOTE column, YES opens the [note window](#the-note-window-midi) instead. |
 | **FUNC + YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
-| Hold **FUNC** | See the values instead of the names. |
+| Hold **FUNC** | The narrow columns show values too. |
 | Press a **knob** | Remove that parameter's lock. |
 | **Knobs A-F** (turned) | Nothing, so nothing gets locked by accident. |
 | **NO** | Close the window. |
+
+**FX SETUP locks (audio, with PLOCKS P2).** With octabam's PLOCKS P2 module in your build (see
+[Adding it to your build](#adding-it-to-your-build)), **FUNC + FX1** or **FUNC + FX2** turns that column
+into the effect's SETUP page (FX1S / FX2S at the foot). It works like the main page: the dot, the
+Part's value, YES and LEVEL to lock. FUNC + the key again goes back.
+
+![FX2 SETUP in the lock window](docs/screens/lock-window-setup.png)
+*FUNC + FX2: the delay's SETUP page. DIR locked to 120 on this step.*
 
 The same columns, four lines tall, are the bottom half of [Pages](#2-pages-one-track-all-64-steps).
 
@@ -402,9 +429,9 @@ it.
   the cursor on it means "this whole track", the same way the cursor on a step means "this step".
 - **The lock window's columns follow the page keys.** The five keys under the screen already mean
   those five pages, so pressing one jumps to its column, and each column's name sits above its key.
-  Only locked parameters are listed, so a column shows its names in full; FUNC, the Octatrack's
-  "show me more" key, swaps them for values. Pages uses the same columns, so the step's locks sit
-  under its steps.
+  Every parameter is listed, so it's always in the same place; the column you're in widens to show
+  values, and FUNC, the Octatrack's "show me more" key, shows the rest. Pages uses the same columns,
+  four lines tall, so it shows the most-used parameters and the locks.
 - **The Split view for the arranger.** The arranger is the part of the Octatrack that's hardest to
   see. The Split view puts the arrangement's timeline next to the numbers you need to edit it.
 - **Nothing outside STEP VIEW changes**, apart from these:
@@ -434,17 +461,29 @@ repo). STEP VIEW needs two other octabam modules: **BRAIN** (settings) and **STO
 If you also use octabam's TRIG MODES module, STEP VIEW keeps the active track's trig mode in step
 with it.
 
+**FX SETUP locks** need octabam's **PLOCKS P2** module (with SCENES P2 and EVENTS, which it requires)
+and two small routines added to it, so STEP VIEW can read and write its locks. From your octabam
+checkout:
+
+```sh
+git apply modules/step-view/plocks-p2-step-view.patch
+```
+
+Without them, the lock window works the same, and FUNC + FX1 / FX2 just picks the column.
+
 | File | What it is |
 |---|---|
 | `modules/step-view/stepview.s` | The code (ColdFire assembly, runs from RAM). |
 | `modules/step-view/manifest.py` | Tells octabam where it hooks in, and its settings. |
 | `modules/step-view/brain.lock` | The settings' fixed IDs. |
 | `modules/step-view/UI_RULES.md` | The layout rules the screens follow (centring, spacing). |
+| `modules/step-view/plocks-p2-step-view.patch` | The two routines PLOCKS P2 needs for FX SETUP locks. |
 | `docs/screens/` | The screenshots on this page, from octabam's Octatrack emulator. |
 
-**Status:** built and tested in octabam's emulator. Parts of it have run on its author's MKI, but not
-every feature has been tested on hardware. The lock window and the lock panels
-are new and so far tested only in the emulator. Back up your card before flashing anything.
+**Status:** built and tested in octabam's emulator, in its author's own build and in octabam's
+own `octabam` remix. Most of it runs on its author's MKI; the newest parts (the lock window's
+layout and FX SETUP locks) are so far tested only in the emulator. Back up your card before flashing
+anything.
 
 ## Licence and credit
 

@@ -21,6 +21,17 @@ def u32(v):
     return struct.pack(">I", v)
 
 
+# The page keys' records' handler slots (stock 0x4005578c, both keymaps and the MIDI-mode maps; build 174):
+# the page keys go through sg_pkey, which ends at the stock handler -- a record each, not a detour on
+# 0x4005578c, so a module that detours that handler (DLPUMP's toast) chains after it.
+PKEY_SLOTS = (0x400bf38a, 0x400bf38e, 0x400bf3a4, 0x400bf3a8, 0x400bf3be, 0x400bf3c2, 0x400bf3d8, 0x400bf3dc,
+              0x400bf3f2, 0x400bf3f6, 0x400bf6fe, 0x400bf702, 0x400bf718, 0x400bf71c, 0x400bf732, 0x400bf736,
+              0x400bf74c, 0x400bf750, 0x400bf766, 0x400bf76a, 0x400bfd16, 0x400bfd1a, 0x400bfd1e, 0x400bfd30,
+              0x400bfd34, 0x400bfd38, 0x400bfd4a, 0x400bfd4e, 0x400bfd52, 0x400bfd64, 0x400bfd68, 0x400bfd6c,
+              0x400bfd7e, 0x400bfd82, 0x400bfd86, 0x400c02fa, 0x400c02fe, 0x400c0302, 0x400c0314, 0x400c0318,
+              0x400c031c, 0x400c032e, 0x400c0332, 0x400c0336, 0x400c0348, 0x400c034c, 0x400c0350, 0x400c0362,
+              0x400c0366, 0x400c036a)
+
 MODULE = Module(
     name="step-view",
     key="STEP VIEW",
@@ -69,8 +80,6 @@ MODULE = Module(
                "the tempo's drawer (EXT blinks through it with an external clock): returns on the MIDI ARP page", pad_to=8),
         Detour(0x4003722c, H("2f0a42a74878002a"), "stepview", "sg_trn",
                "the transport icon's drawer: returns on the MIDI ARP page", pad_to=8),
-        Detour(0x4005578c, H("2f032f02226f000c"), "stepview", "sg_pkey",
-               "the page keys' handler: in MIXER + MIDI's view any page key, ARP's too, leaves the view first", pad_to=8),
         Detour(0x40032280, H("2279400cfeda"), "stepview", "sg_vtog",
                "FUNC + the ARP page key (the setup-window dispatch's MIDI page 2): the stock's ARP SETUP; "
                "never reached in MIXER + MIDI's view (sg_kfarp does nothing there)", pad_to=6),
@@ -219,6 +228,6 @@ MODULE = Module(
         SymbolRef(0x400c07c4, 0x4005e25c, "stepview", "sg_kno", "MKII keymap, NO handler 1: the step editor's on the MIDI ARP page"),
         SymbolRef(0x40061e90, 0x40052200, "stepview", "sg_poll",
                   "the UI's periodic message: then the ARP page's steps again if they changed"),
-    ),
+    ) + tuple(SymbolRef(a, 0x4005578c, "stepview", "sg_pkey", "a page key record's handler: in MIXER + MIDI's view a page key leaves the view first, then the stock's (build 174)") for a in PKEY_SLOTS),
     pokes=(),
 )

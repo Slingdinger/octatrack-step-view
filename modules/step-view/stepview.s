@@ -1200,12 +1200,12 @@ sg_nout:
         move.l  %d0,0x400c0aac
         pea     1.w
         pea     0x23.w
-        jsr     0x4005578c
+        jsr     sg_pkey                 | (as the page key's record: build 174)
         addq.l  #8,%sp
 9:      rts
 
-| Detour 0x4005578c (8 bytes: `movel %d3,%sp@-` ; `movel %d2,%sp@-` ; `moveal %sp@(12),%a1`), the
-| page keys' handler (code, edge; PANEL.md): in MIXER + MIDI's view a page key's press, ARP's too
+| The page keys' records' handler (stock 0x4005578c; code, edge; PANEL.md; SymbolRefs in every keymap,
+| build 174 -- a detour on it until 173): in MIXER + MIDI's view a page key's press, ARP's too
 | (build 141), leaves the view first -- the MIDI side's page and audio mode back -- then the stock's.
 sg_pkey:
         moveq   #SG_WAP,%d0             | Pages' panel's cursor too (build 169)
@@ -1258,10 +1258,8 @@ sg_pkey:
         bsr     sg_mxout
         movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
-8:      move.l  %d3,-(%sp)              | displaced
-        move.l  %d2,-(%sp)              | displaced
-        movea.l 12(%sp),%a1             | displaced
-        jmp     0x40055794
+8:      jmp     0x4005578c              | the stock handler (build 174: sg_pkey is the records' handler, not
+                                        | a detour on it, so another module's detour there runs after)
 
 | sg_pkey's (d0 = the key's column 0-4): FUNC held in the window on AUDIO's FX1 / FX2, with PLOCKS P2
 | in the remix -- that column's SETUP on / off (sg_lksu; build 173). Keeps everything.
@@ -11135,7 +11133,7 @@ sg_mxin:
         move.l  %d0,0x400c0aac
         pea     1.w
         pea     0x23.w
-        jsr     0x4005578c
+        jsr     sg_pkey                 | (as the page key's record: build 174)
         addq.l  #8,%sp
 3:      move.l  sg_full,%d0
         move.l  %d0,sg_ofull
@@ -11204,7 +11202,7 @@ sg_pgo:
         move.l  %d0,0x400c0aac
         pea     1.w
         move.l  %d1,-(%sp)
-        jsr     0x4005578c
+        jsr     sg_pkey                 | (as the page key's record: build 174)
         addq.l  #8,%sp
         moveq   #-1,%d0                 | and cleared after it: a page key leaving the view (sg_pkey)
         move.l  %d0,0x400c0aac          | is the stock's next, not a double press (its SETUP)

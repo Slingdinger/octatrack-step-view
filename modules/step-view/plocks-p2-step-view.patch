@@ -1,0 +1,35 @@
+diff --git a/modules/plocks-p2/p2locks.s b/modules/plocks-p2/p2locks.s
+index 39dcf1b1..bbe614a8 100644
+--- a/modules/plocks-p2/p2locks.s
++++ b/modules/plocks-p2/p2locks.s
+@@ -1000,6 +1000,30 @@ pl_none:
+         suba.l  %a0,%a0
+         rts
+ 
++| ------------------------------------------------------------ STEP VIEW ----
++| For STEP VIEW's lock window (github.com/Slingdinger/octatrack-step-view): the cursor step's
++| page-2 locks read and written beside page 1's.
++| plk_sv_loc: a0 = an audio track's record in a bank's patterns -> a0 = its
++| page-2 block (64 steps x REC), 0 when it maps to none; STORE filled first
++| (plk_init). C convention: d0 d1 a0 a1 the callee's.
++        .globl  plk_sv_loc, plk_sv_mark
++plk_sv_loc:
++        movel   %d4,%sp@-
++        bsr.w   plk_init
++        movel   %a0,%d0
++        bsr.w   p2loc
++        movel   %sp@+,%d4
++        rts
++| plk_sv_mark: d0 = the bank a page-2 lock was written in: its CS1 copy
++| (nv_touch) and the edit flag the file pass reads. Keeps every register.
++plk_sv_mark:
++        bsr.w   nv_touch
++        movel   %d0,%sp@-
++        moveq   #1,%d0
++        movel   %d0,EDITED
++        movel   %sp@+,%d0
++        rts
++
+ | ----------------------------------------------------------------- files ----
+ | One file a bank beside stock's, p2lkNN.work and p2lkNN.strd: 16 bytes of
+ | header ('P2LK', version 1, bank, length) then the bank's 98,304 bytes.

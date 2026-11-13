@@ -179,6 +179,7 @@ sg_rest:
         .set    SG_PSZ, 0x8ed8          | a pattern (STEP_LOCKS.md section 1)
         .set    SG_WST, 4               | sg_win: the step's window (build 90; SG_WSC 3 the scale window)
         .set    SG_WLK, 5               | sg_win: the lock window (build 159)
+        .set    SG_WAP, 6               | sg_win: the cursor in Pages' lock panel (build 169)
         .set    SG_CPW, 0               | 1: COPY without a run opens the copy window (82-162; off since 163)
         .set    SG_SY0, 50              | its lines' bottom y (from the bottom): STEP, the notes' labels,
         .set    SG_SY1, 41              | the notes, VEL / LEN's labels, their values
@@ -432,6 +433,15 @@ sg_apanel:
         move.l  %d0,sg_lkhc
         moveq   #-1,%d0
         move.l  %d0,sg_lkhr
+        moveq   #SG_WAP,%d0             | the cursor in it (build 169): its column and line
+        cmp.l   sg_win,%d0
+        bne.s   0f
+        bsr     sg_lkcl
+        move.l  sg_lkc,%d0
+        move.l  %d0,sg_lkhc
+        move.l  sg_lkr,%d0
+        move.l  %d0,sg_lkhr
+0:
         moveq   #31,%d0                 | four lines, rows 28-53 (three, 35-53, until 163)
         move.l  %d0,sg_lky0
         moveq   #4,%d0
@@ -906,6 +916,20 @@ sg_ucommit:
 sg_kundo:
         bsr     sg_keyfn
         bne     8f
+        moveq   #SG_WLK,%d0             | the lock window / Pages' panel: FUNC + YES trig <-> trigless
+        cmp.l   sg_win,%d0              | (build 169; YES's in 159-168)
+        beq.s   0f
+        moveq   #SG_WAP,%d0
+        cmp.l   sg_win,%d0
+        bne.s   .Lku_0
+0:      moveq   #0x31,%d0
+        cmp.l   4(%sp),%d0
+        bne.s   .Lku_0
+        moveq   #1,%d0
+        cmp.l   8(%sp),%d0
+        beq     sg_lktt
+        rts
+.Lku_0:
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne     7f
@@ -1181,9 +1205,13 @@ sg_nout:
 | page keys' handler (code, edge; PANEL.md): in MIXER + MIDI's view a page key's press, ARP's too
 | (build 141), leaves the view first -- the MIDI side's page and audio mode back -- then the stock's.
 sg_pkey:
+        moveq   #SG_WAP,%d0             | Pages' panel's cursor too (build 169)
+        cmp.l   sg_win,%d0
+        beq.s   .Lpk_w
         moveq   #SG_WLK,%d0             | the lock window: a page key its column (build 159)
         cmp.l   sg_win,%d0
         bne.s   .Lpk_0
+.Lpk_w:
         move.l  4(%sp),%d0
         subi.l  #0x22,%d0               | SRC AMP LFO FX1 FX2: 0x22-0x26
         moveq   #4,%d1
@@ -1194,6 +1222,7 @@ sg_pkey:
         bne.s   .Lpk_x                  | (its release: nothing)
         move.l  %d0,sg_lkc
         clr.l   sg_lkr
+        clr.l   sg_lked
         clr.l   sg_idle
         bra     sg_now
 .Lpk_x: rts
@@ -1656,8 +1685,8 @@ sg_mv:
         tst.l   sg_view
         beq     7f
         bsr     sg_tlon                 | the timeline: a row (build 71)
-        beq.s   0f
-        move.l  %d1,%d0
+        beq     .Lsg_u4p                | (a named label since 169: 155's 0: inside .Lsg_udn took this
+        move.l  %d1,%d0                 | branch, and Pages' UP / DOWN ran the timeline's code)
         tst.l   sg_full                 | (the full timeline: straight up / down, build 100)
         beq.s   .Lsg_udn
         bsr     sg_tmvv
@@ -1694,10 +1723,19 @@ sg_mv:
 .Lsg_ud1:
         bsr     sg_tmv
         bra     6f
-0:      move.l  sg_zn,%d0               | the 4-page window: a row (16 steps; the zoom's, build 84)
+.Lsg_u4p:
+        move.l  sg_zn,%d0               | the 4-page window: a row (16 steps; the zoom's, build 84)
         muls.l  %d0,%d1
         bra     8f
-7:      move.l  sg_row,%d0              | the cursor's track, 0-7
+7:      tst.l   sg_full                 | Tracks (build 169): the row above / below at the same place on
+        beq.s   .Lmv_7o                 | the screen -- its column in the window that row shows (each row
+        tst.l   sg_view                 | its own, sg_fwrow: its step playing's, stopped step 1), kept
+        bne.s   .Lmv_7o                 | within the track
+        bsr     sg_mvtr
+        bsr     sg_tsel
+        bra     6f
+.Lmv_7o:
+        move.l  sg_row,%d0              | the cursor's track, 0-7
         add.l   %d1,%d0
         moveq   #7,%d1
         and.l   %d1,%d0
@@ -1783,10 +1821,22 @@ sg_mv:
 0:      move.l  %d0,sg_prm
         clr.l   sg_hk
         bra     6f
-8:      move.l  sg_step,%d0             | the 4-page window's UP/DOWN: a page
-        add.l   %d1,%d0
+8:      move.l  sg_step,%d0             | the 4-page window's UP/DOWN: a row, the same column (build
+        add.l   %d1,%d0                 | 169: no wrap; down past the last row Pages' lock panel)
+        bmi     6f
         moveq   #63,%d1
-        and.l   %d1,%d0
+        cmp.l   %d1,%d0
+        ble.s   .Lmv_8k
+        tst.l   sg_rep                  | (a repeat stops at the edge)
+        bne     6f
+        bsr     sg_apon
+        beq     6f
+        jsr     sg_lkini                | into the panel: the first column with a lock (the lock
+        moveq   #SG_WAP,%d0             | window's start), its first lock
+        move.l  %d0,sg_win
+        clr.l   sg_hk
+        bra     6f
+.Lmv_8k:
         move.l  %d0,sg_step
         bra     6f
 5:      moveq   #-1,%d0                 | the panel: RIGHT past a line's end, back to the grid
@@ -1917,7 +1967,21 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         bne.s   2f
         btst    %d0,(16,%a1,%d2.l)
         bne.s   2f
-        bsr     sg_trig                 | empty: a note trig first
+        bsr     sg_trig                 | empty: a note trig first, and the note window on it (build
+        movem.l (%sp),%d2/%a2           | 169, Zach: a step added opens the note window; NO there to the
+        addq.l  #8,%sp                  | lock window)
+        moveq   #1,%d0
+        move.l  %d0,sg_mode
+        moveq   #SG_PN,%d0
+        move.l  %d0,sg_prm
+        jsr     sg_lkini
+        moveq   #SG_WLK,%d0
+        move.l  %d0,sg_wret
+        moveq   #SG_WST,%d0
+        move.l  %d0,sg_win
+        clr.l   sg_idle
+        bsr     sg_now
+        rts
 2:      movem.l (%sp),%d2/%a2
         addq.l  #8,%sp
         move.l  0x460d5de0,%d0          | (the time, for a second press: build 90)
@@ -2909,6 +2973,9 @@ sg_run:
 
         move.l  sg_win,%d0              | our window over the grid (build 82; the step's window, build
         beq.s   0f                      | 90, after the panel instead)
+        moveq   #SG_WAP,%d1             | (Pages' panel cursor: the grid as ever, build 169)
+        cmp.l   %d1,%d0
+        beq.s   0f
         moveq   #SG_WST,%d1
         cmp.l   %d1,%d0
         bne     .Lsg_wn
@@ -5717,8 +5784,9 @@ sg_panel:
                                         | there; the ARR menu's SAVE as ever)
 1:                                      | (STEP nn, line 1 since 55, gone in 167: only the lock window's)
 
-        bra     .Lsg_paud               | the step's trig, both sides (build 165: the MIDI notes, VEL and
-                                        | LEN gone, the lock window has them; AUDIO since 158)
+        moveq   #SG_WST,%d0             | the note window up (build 169): its values worked out here, as
+        cmp.l   sg_win,%d0              | ever (drawn under it); else the step's trig, both sides (165:
+        bne     .Lsg_paud               | the notes, VEL, LEN gone from the column; AUDIO since 158)
         bsr     sg_sel                  | the cursor step's values
         movea.l %a2,%a3                 | a3: its locks
         movea.l %a0,%a4                 | a4: the Part's
@@ -6613,6 +6681,9 @@ sg_wkey:
         moveq   #SG_WLK,%d1             | the lock window's (build 159)
         cmp.l   sg_win,%d1
         beq     sg_lkkey
+        moveq   #SG_WAP,%d1             | Pages' panel's (build 169)
+        cmp.l   sg_win,%d1
+        beq     sg_lkkey
         moveq   #SG_WSC,%d1             | the scale window's (build 83)
         cmp.l   sg_win,%d1
         beq     sg_skey
@@ -6677,6 +6748,9 @@ sg_wkey:
 | LEVEL with our window up (from sg_lvl, delta at 8(sp)): on PAGES the page picked on (right) or off.
 sg_wlvl:
         moveq   #SG_WLK,%d0             | the lock window: the picked lock (build 159)
+        cmp.l   sg_win,%d0
+        beq     sg_lklvl
+        moveq   #SG_WAP,%d0             | Pages' panel: the same (build 169)
         cmp.l   sg_win,%d0
         beq     sg_lklvl
         moveq   #SG_WSC,%d0             | the scale window's value (build 83)
@@ -7221,9 +7295,12 @@ sg_zfol:
 sg_kenc:
         bsr     sg_free
         bne     8f
-        moveq   #SG_WLK,%d0             | the lock window: the column's page's parameters (build 159)
+        moveq   #SG_WLK,%d0             | the lock window: nothing (Zach, build 169; 159-168 knobs made
+        cmp.l   sg_win,%d0              | locks on the column's page, sg_lkenc)
+        beq     .Lke_eat
+        moveq   #SG_WAP,%d0
         cmp.l   sg_win,%d0
-        beq     sg_lkenc
+        beq     .Lke_eat
         bsr     sg_apon                 | APGS's panel (build 157): A-F the page's (its knobs, a held
         beq.s   .Lke_np                 | trig's locks); FUNC + a knob its SETUP's (sg_apfx, 157-161)
         tst.l   sg_fkx                  | (encoder D's press, as F turned: the zoom, build 164 -- 162-163
@@ -7234,9 +7311,7 @@ sg_kenc:
         bne     8f
         bra     .Lke_eat
 0:
-        tst.l   SG_HELD+0x2d*24
-        bne     .Lke_eat
-        bra     sg_apke
+        bra     .Lke_eat                | (no trig held: nothing since build 169; sg_apke 162-168)
 .Lke_np:
         moveq   #2,%d0                  | A B C in AUDIO (build 149): the page under the view is the audio
         cmp.l   4(%sp),%d0              | track's AMP page (audio mode), so only with a trig key down (a
@@ -8288,7 +8363,12 @@ sg_stkey:
         moveq   #0x32,%d1
         cmp.l   %d1,%d0
         bne.s   1f
-7:      clr.l   sg_win
+7:      move.l  sg_wret,%d1             | opened from the lock window or Pages' panel: back there (169)
+        beq.s   6f
+        clr.l   sg_wret
+        move.l  %d1,sg_win
+        bra     sg_now
+6:      clr.l   sg_win
         clr.l   sg_mode
         bra     sg_now
 1:      moveq   #-1,%d1                 | UP / LEFT -1, DOWN / RIGHT +1
@@ -8506,7 +8586,14 @@ sg_lkcl:
         move.l  sg_lkc,%d0
         moveq   #0,%d1
         bsr     sg_lkat
-        subq.l  #1,%d1
+        moveq   #SG_WAP,%d0             | Pages' panel: its four lines, the fourth "+n" past four locks
+        cmp.l   sg_win,%d0              | (build 169)
+        bne.s   0f
+        moveq   #4,%d0
+        cmp.l   %d0,%d1
+        ble.s   0f
+        moveq   #3,%d1
+0:      subq.l  #1,%d1
         bpl.s   1f
         moveq   #0,%d1
 1:      cmp.l   sg_lkr,%d1
@@ -8668,6 +8755,7 @@ sg_lkini:
         blt.s   2b
         moveq   #0,%d3
 3:      move.l  %d3,sg_lkc
+        clr.l   sg_lked
         move.l  sg_aud,%d0
         move.l  %d0,sg_lkau
         moveq   #SG_WLK,%d0
@@ -8678,16 +8766,30 @@ sg_lkini:
 
 | The window's keys (from sg_wkey: code d0, a press).
 sg_lkkey:
-        moveq   #0x32,%d1               | NO: out (the panel too, as the step's window did)
-        cmp.l   %d1,%d0
+        moveq   #0x32,%d1               | NO: an edit ends; else out (the panel too, as the step's
+        cmp.l   %d1,%d0                 | window did)
         bne.s   1f
-        clr.l   sg_win
+        tst.l   sg_lked
+        beq.s   0f
+        clr.l   sg_lked
+        bra     sg_now
+0:      clr.l   sg_win
         clr.l   sg_mode
         bra     sg_now
-1:      moveq   #0x31,%d1               | YES: trig <-> trigless
-        cmp.l   %d1,%d0
-        beq     sg_lktt
-        moveq   #-1,%d1                 | LEFT / RIGHT: a column
+1:      moveq   #0x31,%d1               | YES (build 169): the picked lock edited, or on MIDI's NOTE the
+        cmp.l   %d1,%d0                 | note window; trig <-> trigless is FUNC + YES's (sg_kundo)
+        beq     sg_lkyes
+        clr.l   sg_lked                 | (a move ends an edit)
+        moveq   #SG_WAP,%d1             | Pages' panel: UP off the first line back to the grid
+        cmp.l   sg_win,%d1
+        bne.s   0f
+        cmpi.l  #0x33,%d0
+        bne.s   0f
+        tst.l   sg_lkr
+        bne.s   0f
+        clr.l   sg_win
+        bra     sg_now
+0:      moveq   #-1,%d1                 | LEFT / RIGHT: a column
         cmpi.l  #0x34,%d0
         beq.s   2f
         moveq   #1,%d1
@@ -8711,6 +8813,43 @@ sg_lkkey:
         move.l  %d1,sg_lkr
 7:      bsr     sg_lkcl
 8:      bra     sg_now
+
+| YES in the window or Pages' panel (build 169): on MIDI's NOTE column the note window (the step's
+| window, sg_stdraw, its value the picked lock's; NO there back here, sg_wret); else the picked lock
+| edited (sg_lked: its value shown, LEVEL changes it; YES again or NO ends it).
+sg_lkyes:
+        tst.l   sg_aud
+        bne.s   2f
+        tst.l   sg_lkc                  | (column 0 is NOTE)
+        bne.s   2f
+        move.l  sg_lkc,%d0
+        move.l  sg_lkr,%d1
+        bsr     sg_lkat                 | d0: the parameter (-1 none: NOTE)
+        tst.l   %d0
+        bpl.s   1f
+        moveq   #0,%d0
+1:      lea     sg_lknp,%a0             | NOTE VEL LEN NOT2 NOT3 NOT4 -> the panel's values
+        move.b  (0,%a0,%d0.l),%d0
+        andi.l  #0xff,%d0
+        addi.l  #SG_PN,%d0
+        move.l  %d0,sg_prm
+        moveq   #1,%d0
+        move.l  %d0,sg_mode
+        move.l  sg_win,%d0              | (where its NO goes back to)
+        move.l  %d0,sg_wret
+        moveq   #SG_WST,%d0
+        move.l  %d0,sg_win
+        clr.l   sg_lked
+        bra     sg_now
+2:      move.l  sg_lkc,%d0              | a lock picked: its edit on / off
+        move.l  sg_lkr,%d1
+        bsr     sg_lkat
+        tst.l   %d0
+        bmi.s   9f
+        moveq   #1,%d0
+        sub.l   sg_lked,%d0
+        move.l  %d0,sg_lked
+9:      bra     sg_now
 
 | YES in the window: the step's trig -> trigless, else -> a trig; its locks kept.
 sg_lktt:
@@ -8846,7 +8985,10 @@ sg_lkenc:
 
 | LEVEL (sg_lvl's frame, the delta @8): the picked lock.
 sg_lklvl:
-        lea     -8(%sp),%sp
+        tst.l   sg_lked                 | only once YES picked it (build 169)
+        bne.s   0f
+        rts
+0:      lea     -8(%sp),%sp
         movem.l %d2-%d3,(%sp)
         move.l  sg_lkc,%d0
         move.l  sg_lkr,%d1
@@ -9018,7 +9160,13 @@ sg_lkcol:
         moveq   #0,%d1
         move.b  (0,%a5,%d0.l),%d1
 .Llk_v:
-        tst.l   %d7
+        tst.l   sg_lked                 | the lock being edited: its value (build 169)
+        beq.s   0f
+        cmp.l   sg_lkhc,%d6
+        bne.s   0f
+        cmp.l   sg_lkhr,%d4
+        beq.s   2f
+0:      tst.l   %d7
         bne.s   2f
         move.l  %d5,%d0                 | the name (5 characters at most)
         mulu.w  #6,%d0
@@ -10025,6 +10173,52 @@ sg_flab:
         addq.l  #8,%sp
         rts
 
+| Tracks, UP / DOWN (build 169; d1 -1 / +1): the cursor to the next track, on the step at its column
+| on the screen. Uses d0 d1 a0 a1.
+sg_mvtr:
+        lea     -28(%sp),%sp
+        movem.l %d2-%d6/%a2-%a3,(%sp)
+        move.l  sg_row,%d3              | d3: the track
+        add.l   %d1,%d3
+        moveq   #7,%d0
+        and.l   %d0,%d3
+        move.l  sg_step,%d4             | d4: the column (the step less its row's window)
+        sub.l   sg_fwin,%d4
+        bpl.s   0f
+        moveq   #0,%d4
+0:      move.l  sg_cpat,%d0             | a2: the pattern (sg_trk's)
+        beq.s   1f
+        movea.l %d0,%a2
+        bra.s   2f
+1:      movea.l 0x46c82456,%a2
+        moveq   #0,%d0
+        move.b  0x100b14d0,%d0
+        move.l  #0x8ed8,%d1
+        muls.l  %d1,%d0
+        adda.l  %d0,%a2
+2:      move.l  %d3,%d1
+        bsr     sg_trk                  | d6 its length, d5 its step playing
+        moveq   #0,%d0                  | its window
+        tst.l   %d5
+        bmi.s   3f
+        move.l  %d5,%d0
+        move.l  sg_zn,%d1
+        divu.l  %d1,%d0
+        muls.l  %d1,%d0
+3:      add.l   %d4,%d0
+        cmp.l   %d6,%d0
+        blt.s   4f
+        move.l  %d6,%d0
+        subq.l  #1,%d0
+4:      tst.l   %d0
+        bpl.s   5f
+        moveq   #0,%d0
+5:      move.l  %d0,sg_step
+        move.l  %d3,sg_row
+        movem.l (%sp),%d2-%d6/%a2-%a3
+        lea     28(%sp),%sp
+        rts
+
 | Tracks (build 168, Zach's option A): row d7's first step a6 -- each row its own track's window, so a
 | short track never goes blank. Playing hands off: the window holding the step its track plays (d5);
 | hands on or stopped: the cursor's row its page (sg_step), the others their step playing's, stopped
@@ -10786,16 +10980,15 @@ sg_alab:
         tst.l   sg_aud
         beq.s   1f
         lea     sg_lta,%a0
-1:      move.l  (%a0)+,(%a1)+
-        move.w  (%a0)+,(%a1)+
+1:      move.b  (%a0)+,(%a1)+           | (whole strings, build 169)
+        bne.s   1b
         lea     sg_fpg,%a1
         lea     sg_lpm,%a0
         tst.l   sg_aud
         beq.s   2f
         lea     sg_lpa,%a0
-2:      move.l  (%a0)+,(%a1)+
-        move.w  (%a0)+,(%a1)+
-        move.b  (%a0)+,(%a1)+
+2:      move.b  (%a0)+,(%a1)+
+        bne.s   2b
         movem.l (%sp),%a0-%a1
         addq.l  #8,%sp
         rts
@@ -11745,7 +11938,13 @@ sg_pjin:
         move.l  (%a0),%d1
         cmpi.l  #sg_pjmp,%d1
         beq.s   1f
-        move.l  %d1,(%a1)
+        cmpi.l  #sg_ek0,%d1             | (A-E's view handlers there: the stock's they keep, build 169 --
+        bne.s   2f                      | sg_ekin took A and C over from 143, the jumps lost)
+        move.l  sg_eksv,%d1
+2:      cmpi.l  #sg_ek2,%d1
+        bne.s   3f
+        move.l  sg_eksv+8,%d1
+3:      move.l  %d1,(%a1)
         move.l  #sg_pjmp,(%a0)
 1:      rts
 
@@ -12116,7 +12315,7 @@ sg_fkp:
         bne     8f
         tst.l   sg_kb
         bne     8f
-        bsr     sg_tkd                  | a trig key down: the stock's
+        jsr     sg_tkd                  | a trig key down: the stock's
         bne     8f
         rts
 8:      movea.l sg_fksv,%a0
@@ -12136,7 +12335,7 @@ sg_dkp:
         bne     8f
         tst.l   sg_kb
         bne     8f
-        bsr     sg_tkd
+        jsr     sg_tkd
         bne     8f
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
@@ -12214,7 +12413,7 @@ sg_ekp:
         tst.l   sg_kb
         bne.s   8f
         move.l  %a1,-(%sp)              | a trig key down: the stock's (a held trig's lock, as the knobs')
-        bsr     sg_tkd
+        jsr     sg_tkd
         movea.l (%sp)+,%a1
         bne.s   8f
         rts
@@ -12230,7 +12429,16 @@ sg_ekin:
         lea     0x46c7d8de+0x38*24,%a0  | A's entry; 24 bytes an entry
         lea     sg_ekt,%a1
         moveq   #0,%d0                  | the offset in sg_eksv
-1:      move.l  (%a0),%d1
+1:      tst.l   sg_pv                   | the pitch view: A and C its jumps' (sg_pjin; build 169)
+        beq.s   0f
+        tst.l   sg_full
+        beq.s   0f
+        tst.l   %d0
+        beq.s   2f
+        moveq   #8,%d1
+        cmp.l   %d1,%d0
+        beq.s   2f
+0:      move.l  (%a0),%d1
         cmp.l   (%a1),%d1
         beq.s   2f                      | ours already
         move.l  %a1,-(%sp)
@@ -13771,7 +13979,7 @@ sg_fhdr:
         moveq   #0,%d2
         bsr     sg_tx
         move.l  %d0,%d3
-        addq.l  #5,%d3
+        addq.l  #3,%d3                  | (the name a pixel after the colon, build 169; 4 px before)
         lea     SG_SMALL,%a0
         move.l  %d3,%d0
         moveq   #57,%d1
@@ -14434,6 +14642,8 @@ sg_lkc: .long   0                       | the lock window's column 0-4 (build 15
 sg_lkr: .long   0                       | its lock picked in the column
 sg_lkf: .long   0                       | FUNC down when it was drawn
 sg_lkau: .long  0                       | sg_aud when it opened (build 160)
+sg_lked: .long  0                       | 1: the picked lock edited (YES; LEVEL changes it; build 169)
+sg_wret: .long  0                       | the window the note window's NO goes back to, 0 none (169)
 sg_mpc: .long   0                       | MIDI Pages' panel column (build 165)
 sg_flen: .long  1                       | 1: Tracks shows each track's own steps, not looped (166; always since 167)
 sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
@@ -14453,10 +14663,10 @@ sg_abk: .long   0                       | 1: FUNC + BANK opened the ARRANGER men
 sg_scret: .long 0                       | 1: ALL TRACK SCALES opened from a stock page (build 116)
 sg_ctu: .long   64                      | and its Part's TUNE
 sg_mxa: .long   0                       | 1: MIDI alone pressed in the view, its release not yet
-sg_ltm: .ascii  "MIDI:\0"                 | (TRKS: until build 146; Zach: the title says MIDI)
-sg_lta: .ascii  "AUD:\0\0"
-sg_lpm: .ascii  "PAGES:\0"
-sg_lpa: .ascii  "APGS:\0\0"
+sg_ltm: .asciz  "MIDI:"                  | (TRKS: until build 146; Zach: the title says MIDI)
+sg_lta: .asciz  "AUDIO:"                 | (AUD: until 168)
+sg_lpm: .asciz  "MIDI PG:"               | (PAGES: until 168)
+sg_lpa: .asciz  "AUDIO PG:"              | (APGS: until 168)
         .balign 4
 sg_pb:  .long   45                      | the pitch view's range: its A (A2 = 45), 24 semitones
 sg_pr:  .long   3                       | the cursor's note over it, 0-23
@@ -14501,6 +14711,7 @@ sg_flkv: .asciz "VALUES"
 sg_lkpl: .asciz "+%d"
 sg_lkcn: .ascii "PLAY\0AMP\0\0LFO\0\0FX1\0\0FX2\0\0"  | the columns' names, 5 bytes each
 sg_lkcm: .ascii "NOTE\0ARP\0\0LFO\0\0CTL1\0CTL2\0"
+sg_lknp: .byte  0, 4, 5, 1, 2, 3        | NOTE's parameters -> the note window's values (SG_PN + n)
 sg_lkpt: .byte  0, 2, 1, 3, 4           | the columns' pages (the keys' order: SRC AMP LFO FX1 FX2)
 sg_fanl: .asciz "NO LOCKS"
 sg_famo: .asciz "+%d MORE"
@@ -14521,8 +14732,10 @@ sg_ck:  .long   0                       | its kind: 0 a run, 1 a row, 2 pages
 sg_cpm: .long   0                       | pages: which
 sg_ccnt: .long  0                       | the steps a copy or clear took
 sg_cblk: .space 36                      | a cleared step (sg_cclr)
-sg_ftk: .asciz  "MIDI:"                 | (AUD: in AUDIO, sg_alab: 6 bytes; TRKS: until build 146)
-sg_fpg: .asciz  "PAGES:"                | (APGS: in AUDIO: 7 bytes)
+sg_ftk: .asciz  "MIDI:"                 | (AUDIO: in AUDIO, sg_alab; TRKS: until build 146)
+        .space  4
+sg_fpg: .asciz  "MIDI PG:"              | (AUDIO PG: in AUDIO)
+        .space  4
 sg_ftp: .asciz  "%d/%d"
 sg_fpt: .asciz  "%c%02d"
 sg_fcd: .asciz  "%d %c%02d"

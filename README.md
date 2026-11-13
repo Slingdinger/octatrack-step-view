@@ -25,6 +25,7 @@ Octatrack OS (1.40C, MKI and MKII).
   - [3. Pitch](#3-pitch-a-piano-roll-midi)
   - [4. Split](#4-split-the-numbers-for-the-arranger)
 - [The lock window](#the-lock-window): every p-lock on a step
+  - [The note window (MIDI)](#the-note-window-midi)
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
 - [Everything else](#everything-else) (editing, copy / paste, track names)
 - [Settings](#settings-brain--settings--step-view)
@@ -41,7 +42,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Split →** back to Tracks. |
 | Press **MIDI** alone | Switch between the 8 audio tracks and the 8 MIDI tracks. |
 | **Arrows** | Move the cursor. |
-| **YES** | Open the step's [lock window](#the-lock-window): every p-lock on it. An empty step gets a trig (audio) or a note (MIDI) first. |
+| **YES** | Open the step's [lock window](#the-lock-window): every p-lock on it. On an empty MIDI step: a note, and the [note window](#the-note-window-midi). On an empty audio step: a trig. |
 | **FUNC + PLAY** | Clear the step. |
 | **FUNC + NO** | Undo. **FUNC + YES** redoes. |
 | Press **encoder D** | Zoom in or out (Tracks, Pages, Split's timeline), or switch the piano-roll layout (Pitch). |
@@ -51,7 +52,7 @@ Octatrack OS (1.40C, MKI and MKII).
 
 ## Audio and MIDI
 
-STEP VIEW shows one side at a time: the 8 audio tracks (**AUD** in the title) or the 8 MIDI tracks
+STEP VIEW shows one side at a time: the 8 audio tracks (**AUDIO** in the title) or the 8 MIDI tracks
 (**MIDI** in the title). Press **MIDI** alone, without MIXER, to switch. Everything works on both sides
 except Pitch, which is for notes and so MIDI only.
 
@@ -86,7 +87,7 @@ All 8 tracks, one row each. Use it to place trigs quickly and see what every tra
 *The 8 MIDI tracks, 32 steps a row (the default), each a different length.*
 
 ![Tracks, the audio side](docs/screens/tracks-audio.png)
-*The 8 audio tracks: AUD in the title.*
+*The 8 audio tracks: AUDIO in the title.*
 
 How to read it:
 
@@ -99,7 +100,7 @@ How to read it:
   track.
 - The track number at the left is **inverted** for the active track and flashes **M** when the track
   is muted.
-- **The title**: MIDI: or AUD: and the track's name at the left. At the right: the arrangement row
+- **The title**: MIDI: or AUDIO: and the track's name at the left. At the right: the arrangement row
   (R00, with the arranger on), the pattern playing (A03), and four boxes for the pattern's four pages,
   the ones on screen filled.
 - **A pattern coming up** shows as **A03>>A04**. In time with the tempo, the >> swaps for the number of
@@ -133,20 +134,22 @@ the bottom half the cursor step's p-locks in the [lock window's](#the-lock-windo
 sides.
 
 ![Audio Pages with the lock panel](docs/screens/apgs-panel.png)
-*Audio track 1, step 1: ATK, HOLD and VOL locked on AMP. AMP is inverted at the bottom: that's the page
-the knobs are on.*
+*Audio track 1, the cursor in the panel: STRT picked on PLAY and being edited (its value, SL1, shown).*
 
 ![MIDI Pages with the lock panel](docs/screens/pages-midi-panel.png)
-*MIDI track 1, step 1: NOTE, VEL, LEN and three more on NOTE (+3), CC1 on CTL1.*
+*MIDI track 1, step 33: the cursor in the panel on VEL. NOTE, VEL, LEN and three more (+3) on NOTE.*
 
 ![MIDI Pages with FUNC held](docs/screens/pages-midi-panel-values.png)
 *Hold FUNC: the same locks, by value.*
 
-- Each column shows four locks. When there are more, the fourth line says how many more (**+3**), and
-  YES opens the lock window with all of them.
-- The **page keys** pick which column the knobs work on; its name is inverted.
-- **Knobs A-F** lock that page's six parameters on the cursor's step, starting from the Part's value.
-  On the audio side, holding a trig locks that trig's step instead, as usual. FUNC + a knob does nothing.
+- Each column shows four locks. When there are more, the fourth line says how many more (**+3**); the
+  lock window shows all of them.
+- **DOWN** past the grid's last row moves the cursor into the panel. There it works like the lock
+  window: the arrows or the page keys pick a lock, **YES** edits it (its value shows, **LEVEL** changes
+  it; on MIDI's NOTE column YES opens the note window), and **UP** off the first line goes back to the
+  grid.
+- **Knobs** do nothing here, so nothing gets locked by accident. On the audio side, holding a trig and
+  turning a knob still locks that trig's step, as on the stock Octatrack.
 - Press **encoder D** to switch between 16 and 32 steps a row.
 - Leave the view with NO or MIXER + MIDI.
 
@@ -246,7 +249,8 @@ Every p-lock on a step, on one screen. Open it with **YES** on a step:
 
 - **Audio tracks**: YES on a step with a trig or p-locks, in any view. YES on an empty step just puts a
   trig there.
-- **MIDI tracks**: YES on a step, in any view. An empty step gets a note first.
+- **MIDI tracks**: YES on a step with a note, in any view. (YES on an empty step puts a note there and
+  opens the [note window](#the-note-window-midi).)
 
 ![The lock window on an audio step](docs/screens/lock-window.png)
 *Audio track 1, step 1: PTCH and STRT locked on the playback page, VOL on AMP. VOL is picked.*
@@ -273,14 +277,23 @@ six: STEP VIEW locks the notes, VEL and LEN to each step.
 |---|---|
 | A **page key**, or **LEFT / RIGHT** | Pick a column. |
 | **UP / DOWN** | Pick a lock in the column. |
-| **LEVEL** | Change the picked lock. |
-| **Knobs A-F** | Lock that page's six parameters, as holding a trig does. A new lock starts from the Part's value. (Not on ARP: the Octatrack doesn't lock its ARP page.) |
-| Press a **knob** | Remove that parameter's lock. |
+| **YES** | Edit the picked lock: its value shows, and **LEVEL** changes it. YES again or NO ends the edit. On a MIDI step's NOTE column, YES opens the [note window](#the-note-window-midi) instead. |
+| **FUNC + YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
 | Hold **FUNC** | See the values instead of the names. |
-| **YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
+| Press a **knob** | Remove that parameter's lock. |
+| **Knobs A-F** (turned) | Nothing, so nothing gets locked by accident. |
 | **NO** | Close the window. |
 
 The same columns, four lines tall, are the bottom half of [Pages](#2-pages-one-track-all-64-steps).
+
+### The note window (MIDI)
+
+![The note window](docs/screens/note-window.png)
+*One MIDI step's notes, big: NOTE and NOT2-4 by name and octave, VEL, and LEN with its subdivision.*
+
+It opens when you add a note (YES on an empty MIDI step), or with YES on the lock window's NOTE column.
+The arrows pick a value and **LEVEL** changes it. **NO** goes back to the lock window (or to Pages'
+panel, if you came from there).
 
 ---
 
@@ -308,6 +321,9 @@ lock values on that step as usual.
 
 - **Track keys** jump the cursor to that track. **UP / DOWN** in Tracks also make that track the
   active one.
+- **UP / DOWN** move one row and keep the cursor at the same spot on the screen, in every view and
+  zoom: in Tracks, to the next track's step in the same column; in Pages, to the same column a row
+  up or down (no wrapping; DOWN past the last row goes into the lock panel).
 - **SCALE / PAGE** jumps a page, as does **FUNC + LEFT / RIGHT**. **LEVEL** in the grid moves the cursor
   along the 64 steps.
 - **Undo** goes back nine steps, for the whole pattern.

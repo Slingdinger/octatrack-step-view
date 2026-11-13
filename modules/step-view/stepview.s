@@ -432,44 +432,40 @@ sg_apanel:
         tst.l   SG_HELD+0x2d*24         | columns, three lines (rows 35-53, "+n" past them), the names on
         beq.s   1f                      | rows 58-62, the stock's page's column inverted; FUNC: the values
         moveq   #1,%d7
-1:      bsr     sg_apcol                | the column the knobs are on
+1:      bsr     sg_apcol                | the column the knobs are on (wide, build 175, as the window's)
         move.l  %d0,sg_lkhc
         moveq   #-1,%d0
         move.l  %d0,sg_lkhr
-        moveq   #SG_WAP,%d0             | the cursor in it (build 169): its column and line
-        cmp.l   sg_win,%d0
+        clr.l   sg_lknv
+        moveq   #SG_WAP,%d0             | the cursor in it (build 169): its column and line, or its name
+        cmp.l   sg_win,%d0              | (175, sg_lknm: the name inverted, no line)
         bne.s   0f
         bsr     sg_lkcl
         move.l  sg_lkc,%d0
         move.l  %d0,sg_lkhc
+        move.l  sg_lknm,%d0
+        move.l  %d0,sg_lknv
+        bne.s   0f
         move.l  sg_lkr,%d0
         move.l  %d0,sg_lkhr
 0:
         moveq   #31,%d0                 | four lines, rows 28-53 (three, 35-53, until 163)
-        move.l  %d0,sg_lky0
+        move.l  %d0,sg_lky0f
         moveq   #4,%d0
         move.l  %d0,sg_lknr
         moveq   #1,%d0
         move.l  %d0,sg_lkfy
-        bsr     sg_lkcol
-        moveq   #2,%d0                  | the dotted lines: over the names, the dividers
+        moveq   #27,%d0
+        move.l  %d0,sg_lkdy
+        moveq   #18,%d0
+        move.l  %d0,sg_lkdn
+        bsr     sg_lkfull
+        moveq   #2,%d0                  | the dotted line over the names
         moveq   #56,%d1
         moveq   #2,%d2
         moveq   #0,%d3
         moveq   #62,%d4
         bsr     sg_lkdot
-        moveq   #26,%d5
-3:      move.l  %d5,%d0
-        moveq   #27,%d1
-        moveq   #0,%d2
-        moveq   #2,%d3
-        moveq   #18,%d4
-        bsr     sg_lkdot
-        moveq   #25,%d0
-        add.l   %d0,%d5
-        moveq   #101,%d0
-        cmp.l   %d0,%d5
-        ble.s   3b
         movem.l (%sp),%d0-%d7/%a2-%a4
         lea     44(%sp),%sp
         rts
@@ -1856,11 +1852,8 @@ sg_mv:
         bne     6f
         bsr     sg_apon
         beq     6f
-        jsr     sg_lkini                | into the panel: the first column with a lock (the lock
-        moveq   #SG_WAP,%d0             | window's start), its first lock
-        move.l  %d0,sg_win
-        clr.l   sg_hk
-        bra     6f
+        jsr     sg_lkpan                | into the panel: the first column with a lock (the lock
+        bra     6f                      | window's start), its first lock
 .Lmv_8k:
         move.l  %d0,sg_step
         bra     6f
@@ -1995,7 +1988,12 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         bsr     sg_trig                 | empty: a note trig first, and the note window on it (build
         movem.l (%sp),%d2/%a2           | 169, Zach: a step added opens the note window; NO there to the
         addq.l  #8,%sp                  | lock window)
-        moveq   #1,%d0
+        jsr     sg_apon                 | (Pages, 175: the panel on it instead)
+        beq.s   4f
+        jsr     sg_lkpan
+        clr.l   sg_idle
+        bra     sg_now
+4:      moveq   #1,%d0
         move.l  %d0,sg_mode
         moveq   #SG_PN,%d0
         move.l  %d0,sg_prm
@@ -2011,8 +2009,12 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         addq.l  #8,%sp
         move.l  0x460d5de0,%d0          | (the time, for a second press: build 90)
         move.l  %d0,sg_ytk
-        jsr     sg_lkini                | the lock window (build 165; the panel on NOTE until 164)
-        clr.l   sg_idle
+        jsr     sg_apon                 | Pages (175): the panel on the step
+        beq.s   4f
+        jsr     sg_lkpan
+        bra.s   5f
+4:      jsr     sg_lkini                | the lock window (build 165; the panel on NOTE until 164)
+5:      clr.l   sg_idle
         bsr     sg_now
 7:      rts
 8:      jmp     0x4005e4c8
@@ -3161,7 +3163,12 @@ sg_run:
         beq.s   .Lsg_ph
         bsr     sg_fcur1                | (the full view: its first column only, build 98)
         beq.s   .Lsg_ph
-        moveq   #32,%d0
+        moveq   #SG_WAP,%d0             | Pages' panel's step (175, Zach A): a hollow box, steady
+        cmp.l   sg_win,%d0
+        bne.s   0f
+        jsr     sg_hbox
+        bra.s   .Lsg_ph
+0:      moveq   #32,%d0
         and.l   sg_bk,%d0
         bne.s   .Lsg_ph
         bsr     sg_mark
@@ -3587,6 +3594,35 @@ sg_mark:
         move.l  sg_rh,%d3
         add.l   %a4,%d3
         lea     SG_FILL,%a0
+        bsr     sg_r1
+        movem.l (%sp),%d2-%d3
+        addq.l  #8,%sp
+        rts
+
+| Pages' panel's step on the grid (175): sg_mark's area a pixel larger all round, outlined. d4 = the
+| column, a4 = the row's top. Uses d0 d1 a0 a1.
+sg_hbox:
+        lea     -8(%sp),%sp
+        movem.l %d2-%d3,(%sp)
+        move.l  %d4,%d0
+        bsr     sg_colx
+        subq.l  #2,%d0
+        move.l  %d0,%d2
+        add.l   sg_zp,%d2
+        addq.l  #2,%d2
+        tst.l   %d0                     | (kept on the screen)
+        bpl.s   1f
+        moveq   #0,%d0
+1:      moveq   #127,%d1
+        cmp.l   %d1,%d2
+        ble.s   1f
+        move.l  %d1,%d2
+1:      move.l  %a4,%d1
+        subq.l  #2,%d1
+        move.l  sg_rh,%d3
+        add.l   %a4,%d3
+        addq.l  #1,%d3
+        lea     SG_RECT,%a0
         bsr     sg_r1
         movem.l (%sp),%d2-%d3
         addq.l  #8,%sp
@@ -8942,12 +8978,31 @@ sg_lkopen:
         bne.s   1f
         movem.l (%sp),%d2-%d3/%a2
         lea     12(%sp),%sp
-        bra     sg_atog
-1:      bsr     sg_lkini
-        movem.l (%sp),%d2-%d3/%a2
+        jsr     sg_apon                 | (Pages, 175: the trig, then the panel)
+        beq     sg_atog
+        jsr     sg_atog
+        jsr     sg_lkpan
+        clr.l   sg_idle
+        bra     sg_now
+1:      jsr     sg_apon                 | Pages (175): the panel on the step; else the window
+        beq.s   2f
+        jsr     sg_lkpan
+        bra.s   3f
+2:      bsr     sg_lkini
+3:      movem.l (%sp),%d2-%d3/%a2
         lea     12(%sp),%sp
         clr.l   sg_idle
         bra     sg_now
+
+| Pages' panel's cursor on the cursor's step (175, Zach: YES on a step goes down to it): as the
+| window would open (sg_lkini), but in the panel. Uses d0.
+sg_lkpan:
+        jsr     sg_lkini
+        moveq   #SG_WAP,%d0
+        move.l  %d0,sg_win
+        clr.l   sg_lknm
+        clr.l   sg_hk
+        rts
 
 | The window opened on the cursor's step: on the first column with a lock (else the first), its first
 | lock; the side it was opened on noted (sg_lkau). Keeps everything.
@@ -8969,6 +9024,7 @@ sg_lkini:
         blt.s   2b
         moveq   #0,%d3
 3:      clr.l   sg_lkro
+        clr.l   sg_lkrt                 | (175)
         clr.l   sg_lksu                 | (main pages first, build 173)
         clr.l   sg_lksu+4
         move.l  %d3,sg_lkc
@@ -8990,15 +9046,39 @@ sg_lkkey:
         beq.s   0f
         clr.l   sg_lked
         bra     sg_now
-0:      clr.l   sg_win
+0:      clr.l   sg_lknm
+        moveq   #SG_WLK,%d1             | the window opened from Pages' panel: back to the panel (175)
+        cmp.l   sg_win,%d1
+        bne.s   6f
+        moveq   #SG_WAP,%d1
+        cmp.l   sg_lkrt,%d1
+        bne.s   6f
+        clr.l   sg_lkrt
+        move.l  %d1,sg_win
+        bra     sg_now
+6:      clr.l   sg_win
         clr.l   sg_mode
         bra     sg_now
 1:      moveq   #0x31,%d1               | YES (build 169): the picked lock edited, or on MIDI's NOTE the
         cmp.l   %d1,%d0                 | note window; trig <-> trigless is FUNC + YES's (sg_kundo)
+        bne.s   1f
+        moveq   #SG_WAP,%d1             | (175) Pages' panel on a column's name: the window on it
+        cmp.l   sg_win,%d1
+        bne     sg_lkyes
+        tst.l   sg_lknm
         beq     sg_lkyes
-        clr.l   sg_lked                 | (a move ends an edit)
+        clr.l   sg_lknm
+        clr.l   sg_lkr
+        clr.l   sg_lked
+        move.l  %d1,sg_lkrt
+        moveq   #SG_WLK,%d1
+        move.l  %d1,sg_win
+        bra     sg_now
+1:      clr.l   sg_lked                 | (a move ends an edit)
         moveq   #SG_WAP,%d1             | Pages' panel: UP off the first line back to the grid
         cmp.l   sg_win,%d1
+        bne.s   0f
+        tst.l   sg_lknm
         bne.s   0f
         cmpi.l  #0x33,%d0
         bne.s   0f
@@ -9025,7 +9105,27 @@ sg_lkkey:
         moveq   #1,%d1
         cmpi.l  #0x20,%d0
         bne.s   8f
-4:      add.l   sg_lkr,%d1
+4:      moveq   #SG_WAP,%d0             | Pages' panel (175): DOWN at the last line to the column's name,
+        cmp.l   sg_win,%d0              | UP from the name back to it
+        bne.s   5f
+        tst.l   sg_lknm
+        beq.s   6f
+        tst.l   %d1
+        bpl.s   8f
+        clr.l   sg_lknm
+        bra.s   7f
+6:      tst.l   %d1
+        bmi.s   5f
+        move.l  sg_lkr,-(%sp)
+        add.l   %d1,sg_lkr
+        bsr     sg_lkcl
+        move.l  (%sp)+,%d0
+        cmp.l   sg_lkr,%d0
+        bne.s   8f
+        moveq   #1,%d0
+        move.l  %d0,sg_lknm
+        bra.s   8f
+5:      add.l   sg_lkr,%d1
         bmi.s   8f
         move.l  %d1,sg_lkr
 7:      bsr     sg_lkcl
@@ -9567,6 +9667,8 @@ sg_lkval:
         lea     12(%sp),%sp
         rts
 
+| (175: also Pages' panel's, sg_apanel: the column sg_lkhc, its line sg_lkhr (-1 none), sg_lky0f /
+| sg_lknr / sg_lkfy the lines and the foot, sg_lkdy / sg_lkdn the dividers, sg_lknv the name inverted.)
 | The window's columns (build 172, Zach): the picked column (sg_lkc) 39 px, the others 20, a dotted
 | divider before each; every parameter of the column's page that has a name (sg_lkshw), in sg_lkord's
 | order, six lines (bottoms 47 .. 12 from the foot), the name from x0 + 3; the picked column the value
@@ -9583,7 +9685,7 @@ sg_lkfull:
         moveq   #2,%d3                  | d3: its x
 .Lfu_c: move.l  %d3,sg_lkx
         moveq   #20,%d0                 | its width
-        cmp.l   sg_lkc,%d6
+        cmp.l   sg_lkhc,%d6
         bne.s   0f
         moveq   #39,%d0
 0:      move.l  %d0,sg_lkw
@@ -9591,10 +9693,10 @@ sg_lkfull:
         beq.s   1f
         move.l  %d3,%d0
         subq.l  #1,%d0
-        moveq   #10,%d1
+        move.l  sg_lkdy,%d1
         moveq   #0,%d2
         moveq   #2,%d3
-        moveq   #27,%d4
+        move.l  sg_lkdn,%d4
         bsr     sg_lkdot
         move.l  sg_lkx,%d3
 1:      move.l  %d6,%d0                 | its name along the foot, centred
@@ -9622,11 +9724,11 @@ sg_lkfull:
         asr.l   #1,%d1
         add.l   %d3,%d1
         move.l  %d1,%d0
-        moveq   #3,%d1
+        move.l  sg_lkfy,%d1
         moveq   #0,%d2
-        cmp.l   sg_lkc,%d6
+        cmp.l   sg_lkhc,%d6
         bne.s   3f
-        moveq   #1,%d2
+        move.l  sg_lknv,%d2             | (inverted: the window's always, the panel's with the cursor on it)
 3:      movea.l %a2,%a1
         lea     SG_SMALL,%a0
         bsr     sg_tx
@@ -9654,21 +9756,44 @@ sg_lkfull:
         tst.l   %d0
         beq     .Lfu_q
         movea.l %d0,%a2                 | a2: 2 locked
-        move.l  sg_lky0f,%d1            | (47 - 7 line: its bottom from the foot)
+        move.l  sg_lky0f,%d1            | (the first line's bottom - 7 line, from the foot)
         move.l  %d4,%d0
         mulu.w  #7,%d0
         sub.l   %d0,%d1
         move.l  %d1,sg_lkyl
-        moveq   #0,%d2                  | the name: inverted when picked and not being edited
-        cmp.l   sg_lkc,%d6
+        move.l  sg_lknr,%d0             | the last line with more to come: "+n" (the panel, 175)
+        subq.l  #1,%d0
+        cmp.l   %d0,%d4
+        bne.s   .Lfu_v
+        move.l  %d6,%d0
+        moveq   #0,%d1
+        bsr     sg_lkat
+        cmp.l   sg_lknr,%d1
+        ble.s   .Lfu_v
+        sub.l   %d4,%d1
+        move.l  %d1,-(%sp)
+        pea     sg_lkpl
+        pea     sg_b3
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        move.l  %d3,%d0
+        addq.l  #3,%d0
+        move.l  sg_lkyl,%d1
+        moveq   #0,%d2
+        lea     SG_SMALL,%a0
+        lea     sg_b3,%a1
+        bsr     sg_tx
+        bra     .Lfu_n
+.Lfu_v: moveq   #0,%d2                  | the name: inverted when picked and not being edited
+        cmp.l   sg_lkhc,%d6
         bne.s   4f
-        cmp.l   sg_lkr,%d4
+        cmp.l   sg_lkhr,%d4
         bne.s   4f
         tst.l   sg_lked
         bne.s   4f
         moveq   #1,%d2
 4:      move.l  %d2,-(%sp)
-        cmp.l   sg_lkc,%d6              | a narrow column with FUNC down: the value there instead
+        cmp.l   sg_lkhc,%d6              | a narrow column with FUNC down: the value there instead
         beq.s   5f
         tst.l   %d7
         beq.s   5f
@@ -9696,7 +9821,7 @@ sg_lkfull:
         lea     SG_SMALL,%a0
         lea     sg_b3,%a1
         bsr     sg_tx
-        cmp.l   sg_lkc,%d6              | the picked column: the value at the right
+        cmp.l   sg_lkhc,%d6              | the picked column: the value at the right
         bne.s   8f
         bsr     sg_lkvs
         moveq   #18,%d0
@@ -9706,11 +9831,11 @@ sg_lkfull:
         bsr     sg_wid
         move.l  %d3,%d1
         add.l   sg_lkw,%d1
-        subq.l  #1,%d1
+        subq.l  #2,%d1                  | (175: a pixel clear of the divider, inverted too)
         sub.l   %d0,%d1
         move.l  %d1,%d0
         moveq   #0,%d2                  | inverted while edited
-        cmp.l   sg_lkr,%d4
+        cmp.l   sg_lkhr,%d4
         bne.s   9f
         tst.l   sg_lked
         beq.s   9f
@@ -9737,7 +9862,7 @@ sg_lkfull:
         movem.l (%sp),%d2-%d3
         addq.l  #8,%sp
 0:      addq.l  #1,%d4
-        moveq   #6,%d0
+        move.l  sg_lknr,%d0
         cmp.l   %d0,%d4
         bge.s   .Lfu_n
 .Lfu_q: addq.l  #1,sg_lkk
@@ -9909,7 +10034,23 @@ sg_lkdraw:
         moveq   #57,%d1
         moveq   #0,%d2
         bsr     sg_tx
-        bsr     sg_lkfull               | the columns (build 172: the picked one wide, names and values)
+        move.l  sg_lkc,%d0              | the columns (build 172: the picked one wide, names and values)
+        move.l  %d0,sg_lkhc
+        move.l  sg_lkr,%d0
+        move.l  %d0,sg_lkhr
+        moveq   #47,%d0
+        move.l  %d0,sg_lky0f
+        moveq   #6,%d0
+        move.l  %d0,sg_lknr
+        moveq   #3,%d0
+        move.l  %d0,sg_lkfy
+        moveq   #10,%d0
+        move.l  %d0,sg_lkdy
+        moveq   #27,%d0
+        move.l  %d0,sg_lkdn
+        moveq   #1,%d0
+        move.l  %d0,sg_lknv
+        bsr     sg_lkfull
         moveq   #2,%d0                  | the dotted lines: under the title, over the names, the dividers
         moveq   #9,%d1
         moveq   #2,%d2
@@ -12890,7 +13031,7 @@ sg_pfk:
 | Build 153 (Zach: "move all the encoder F clicks to encoder D"): this work is encoder D's press now
 | (sg_dkp); F's press does nothing in the view, as A-C and E's (sg_ekp).
 sg_fkp:
-        bsr     sg_free
+        jsr     sg_free
         bne     8f
         moveq   #SG_WLK,%d0             | the lock window: F's lock removed (build 159)
         cmp.l   sg_win,%d0
@@ -15357,6 +15498,11 @@ sg_lky0f: .long 47
 sg_lksu: .long  0, 0                    | FX1 / FX2 SETUP shown in the window (build 173)
 sg_lkcs: .ascii "FX1S\0FX2S\0"
         .even
+sg_lknm: .long  0                       | Pages' panel: the cursor on the column's name (175)
+sg_lkrt: .long  0                       | SG_WAP: the window's NO back to Pages' panel (175)
+sg_lknv: .long  1                       | sg_lkfull: the picked column's name inverted
+sg_lkdy: .long  10                      | sg_lkfull: the dividers' first row and dot count
+sg_lkdn: .long  27
 sg_lkro: .long  0                       | 1: sg_lkat counts the locks alone (sg_lkini; build 171)
 sg_lkc: .long   0                       | the lock window's column 0-4 (build 159)
 sg_lkr: .long   0                       | its lock picked in the column

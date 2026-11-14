@@ -2045,8 +2045,8 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         bne     7f                      | press only
         tst.l   sg_tnum                 | on the track number: nothing (build 143)
         bne     7f
-        tst.l   sg_tlcur                 | (or a length, 176)
-        bne     7f
+        tst.l   sg_tlcur                 | (or a length, 176; 192: the stock's SCALE window for its track)
+        bne     sg_tlyes
         tst.l   sg_aud                  | AUDIO: the step's trig cycled (build 110); NO's "CLEAR? YES" up:
         beq.s   0f                      | the step cleared (build 116, as on a MIDI track)
         bsr     sg_nask
@@ -2977,6 +2977,10 @@ sg_run:
         move.b  0x46c78d6a,%d1          | (0x46c78d6a << 8 | 0x8000000c): bits 0-7 solo, 8-15 mute; with a
         lsl.l   #8,%d1                  | solo the others are muted and the soloed play
         or.l    0x8000000c,%d1
+        tst.l   sg_aud                  | (192, Zach: AUDIO's too, 0x80000008: bits 8-15 mute, 0-7 solo)
+        beq.s   0f
+        move.l  0x80000008,%d1
+0:
         moveq   #0,%d2
         move.b  %d1,%d2                 | d2: solos
         lsr.l   #8,%d1                  | d1: mutes
@@ -2986,10 +2990,7 @@ sg_run:
         or.l    %d3,%d1
 1:      eor.l   %d2,%d1
         and.l   #0xff,%d1
-        tst.l   sg_aud                  | (not shown in AUDIO, build 110)
-        beq.s   0f
-        moveq   #0,%d1
-0:      move.l  %d1,sg_mm
+        move.l  %d1,sg_mm               | (AUDIO's shown too since 192; none until then, 110)
         bsr     sg_mx
         moveq   #0,%d7
 1:      move.l  %d7,%d1                 | each track: its length, step playing, its masks
@@ -8231,6 +8232,18 @@ sg_skey:
 | YES on a row's number (build 106): the window closes and the stock PATTERN SCALE window opens (FUNC +
 | SCALE's 0x40059f88; its LEN / TOTAL fields, 1-16/16 ..), a track's row making that track the active
 | one first (0x40083bf8). Uses d0 d1 a0 a1 (and what the stock's use).
+| (192, Zach) YES on a track's length in TRKS: the stock's SCALE window for that track, as the scale
+| window's YES on a row's number (sg_sstk).
+sg_tlyes:
+        move.l  sg_row,-(%sp)
+        jsr     0x40083bf8
+        addq.l  #4,%sp
+        pea     1.w
+        pea     0x2e.w
+        jsr     0x40059f88
+        addq.l  #8,%sp
+        rts
+
 sg_sstk:
         clr.l   sg_win
         clr.l   sg_snum
@@ -15799,11 +15812,14 @@ sg_fhdt:
         move.l  %d7,%d0
         mulu.w  #7,%d0
         sub.l   %d0,%d5
-        clr.l   sg_fhinv                | (the cursor's track's, the cursor on it: inverted, 176)
-        tst.l   sg_tlcur
+        clr.l   sg_fhinv                | (the cursor's track's, the cursor on it: inverted, 176; flashing
+        tst.l   sg_tlcur                | with the cursor's blink, as the track number, 192)
         beq.s   2f
         cmp.l   sg_row,%d7
         bne.s   2f
+        moveq   #32,%d0
+        and.l   sg_bk,%d0
+        beq.s   2f
         moveq   #1,%d0
         move.l  %d0,sg_fhinv
 2:      bra     sg_fhrt

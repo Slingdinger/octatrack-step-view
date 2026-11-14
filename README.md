@@ -106,7 +106,8 @@ at the right: track 1 is 64 steps, track 5 is 32, the others 16.*
 *The audio side.*
 
 - **Tall bar**: a trig. **Short bar**: a trigless trig. **Line**: an empty step.
-- **The track number** is inverted for the active track and flashes **M** while the track is muted.
+- **The track number** is inverted for the active track and flashes **M** while the track is muted
+  (audio and MIDI).
   **UP / DOWN** make the track you land on the active one.
 - **The title**: MIDI: or AUDIO: and the track at the left; at the right the arrangement row (R00,
   arranger on), the pattern (A03) and four boxes for its pages, the ones on screen filled.
@@ -120,8 +121,8 @@ at the right: track 1 is 64 steps, track 5 is 32, the others 16.*
 *Playing: each row's play mark is at its own track's step.*
 
 **Track lengths** (SCALE set to PER TRACK). Press RIGHT past a track's last step: the cursor lands on
-its length. **LEVEL** changes it (2-64), **FUNC + LEVEL** by 4, **UP / DOWN** go to the other tracks'
-lengths. With SCALE on NORMAL, the length is the pattern's: set it in the SCALE menu.
+its length, which flashes. **LEVEL** changes it (2-64), **FUNC + LEVEL** by 4, **UP / DOWN** go to the
+other tracks' lengths, and **YES** opens the Octatrack's SCALE window for that track. With SCALE on NORMAL, the length is the pattern's: set it in the SCALE menu.
 
 ![Tracks, a length picked](docs/screens/tracks-length.png)
 *Audio track 5's length picked.*

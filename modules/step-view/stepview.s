@@ -16774,6 +16774,8 @@ sg_arst:
 1:      clr.l   sg_pv
         clr.l   sg_win
         clr.l   sg_full
+        moveq   #2,%d0                  | (191, Zach: STEPS opens at 16 steps a row)
+        move.l  %d0,sg_zm
         jsr     sg_vwset
         clr.l   sg_mode
         moveq   #-1,%d0

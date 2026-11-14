@@ -214,7 +214,7 @@ beside each row's first line:
 - **PAT**: the row's pattern. The next row's flashes until it starts.
 
 Press an arrow past the edge of the grid's page and the cursor moves onto the row playing's pattern
-or the next row's, whichever is nearer; **LEVEL** changes it, **RIGHT** or **NO** goes back. **Encoder D** zooms (4, 8 or 16 steps a row), and UP / DOWN
+or the next row's, whichever is nearer; **LEVEL** changes it, **RIGHT** or **NO** goes back. It opens at 16 steps a row; **encoder D** zooms (4, 8 or 16), and UP / DOWN
 move a row at a time.
 
 ---

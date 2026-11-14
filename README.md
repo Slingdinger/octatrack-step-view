@@ -261,7 +261,7 @@ row's start, three columns under ROW and PAT, with dotted lines between them:
   **H** on a row followed by a HALT.
 - **PAT**: the row's pattern. The next row's flashes until it starts.
 
-The left of the column is left empty on purpose. The clock, the countdown and the step's trig are gone.
+The grid takes the rest of the screen. The clock, the countdown and the step's trig are gone.
 
 (What follows is the view's earlier description.)
 It was designed as the arranger's companion, and follows it: turn the arranger on or off and Split

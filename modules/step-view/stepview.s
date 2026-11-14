@@ -3134,9 +3134,10 @@ sg_run:
         bsr     sg_clr
         tst.l   sg_full                 | (none in the full view, build 92)
         bne.s   2f
-        moveq   #58,%d0                 | the divider, from the top (build 73; under the first row in
-        moveq   #1,%d1                  | 60-72)
-        moveq   #58,%d2
+        move.l  sg_gx,%d0               | the divider, from the top (build 73; under the first row in
+        subq.l  #2,%d0                  | 60-72), 2 px before the grid (x 58; STEPS' 30, 186)
+        moveq   #1,%d1
+        move.l  %d0,%d2
         moveq   #63,%d3
         lea     SG_FILL,%a0
         bsr     sg_r1
@@ -5655,11 +5656,19 @@ sg_panel:
         lea     sg_ftk,%a1              | from x 11), a character every 4 px, a space after TRKS: or
         tst.l   sg_view                 | PAGES: (build 75)
         beq.s   1f
+        bsr     sg_tlon                 | (186, STEPS: MIDI: / AUDIO:, from x 32, the name tight after)
+        bne.s   1f
         lea     sg_fpg,%a1
 1:      lea     SG_SMALL,%a0
         bsr     sg_wid
         moveq   #64,%d5
         add.l   %d0,%d5                 | d5: the name's x, 45 + the label + 4
+        move.l  sg_gx,%d1
+        cmpi.l  #32,%d1
+        bne.s   1f
+        moveq   #33,%d5
+        add.l   %d0,%d5
+1:
         moveq   #0,%d4
 1:      lea     sg_nm,%a0
         move.b  (0,%a0,%d4.l),%d0
@@ -5696,9 +5705,16 @@ sg_panel:
         lea     sg_ftk,%a1              | over the rows' numbers at x 45: TRK (8-track window) or PAGE (the
         tst.l   sg_view                 | 4-page window; PG in 68-72); the name after it (build 68)
         beq.s   1f
+        bsr     sg_tlon
+        bne.s   1f
         lea     sg_fpg,%a1
 1:      lea     SG_SMALL,%a0
         moveq   #60,%d0
+        move.l  sg_gx,%d1
+        cmpi.l  #32,%d1
+        bne.s   1f
+        moveq   #32,%d0
+1:
         moveq   #57,%d1
         moveq   #0,%d2
         bsr     sg_tx
@@ -7516,10 +7532,15 @@ sg_selc:
 | sg_tne (8 at 16 a row), sg_tm segments to a page, sg_tpk pages to a row, sg_tcn columns a segment; the
 | timeline's cursor kept on a page shown.
 sg_zset:
-        moveq   #SG_GX,%d0              | the grid's first column: x 64, the full view's x 0 (build 92);
         tst.l   sg_full                 | the full 8-track window's x 32, its labels left of it (build 99)
-        beq.s   0f
-        moveq   #0,%d0
+        bne.s   6f
+        bsr     sg_tlon                 | (186: STEPS, the arranger's timeline: x 32, 96 px)
+        beq.s   5f
+        moveq   #32,%d0
+        bra.s   0f
+5:      moveq   #SG_GX,%d0              | the grid's first column: x 64, the full view's x 0 (build 92);
+        bra.s   0f
+6:      moveq   #0,%d0
         tst.l   sg_view
         bne.s   0f
         moveq   #SG_FTX,%d0
@@ -7541,7 +7562,8 @@ sg_zset:
         moveq   #4,%d0                  | 4 << zoom
         move.l  sg_zm,%d1
         lsl.l   %d1,%d0
-        moveq   #64,%d1
+        move.l  #128,%d1                | (128 - x: 64, STEPS' 96, 186)
+        sub.l   sg_gx,%d1
         divu.l  %d0,%d1                 | the pitch
 1:      move.l  %d0,sg_zn
         move.l  %d1,sg_zp
@@ -8590,8 +8612,8 @@ sg_tnames:
         move.l  %d3,-(%sp)
         move.l  %d4,%d1                 | its cells cleared: x 23 .. 57 (the lines come back, sg_stcol)
         subq.l  #1,%d1
-        moveq   #SG_RCX-1,%d0
-        moveq   #57,%d2
+        moveq   #SG_RCX,%d0
+        moveq   #SG_SPR,%d2
         move.l  %d4,%d3
         addq.l  #3,%d3
         bsr     sg_clr
@@ -8644,7 +8666,7 @@ sg_tnames:
         lea     SG_SMALL,%a0
         lea     sg_b1,%a1
         bsr     sg_wid
-        moveq   #57,%d3
+        moveq   #SG_SPR+1,%d3
         sub.l   %d0,%d3
         moveq   #0,%d2
         cmp.l   sg_tqx,%d5              | the next row's: picked inverted, else the flash
@@ -8671,8 +8693,9 @@ sg_tnames:
 | (181, Zach) STEPS' left column: ROW (x 24), a 5-px flag column (x 38-42: M, the infinity, H), PAT
 | (against the divider); the heads on the top line, dotted lines between the columns. Only in the arranger's timeline (sg_tlon). The
 | countdown before the next row and the clock are gone. Uses d0 d1 a0 a1.
-        .set    SG_RCX, 24
-        .set    SG_FCX, 38
+        .set    SG_RCX, 0               | (186, Zach: the grid from x 32; ROW x 0-10, lines x 11 / 17,
+        .set    SG_FCX, 12              | flags x 12-16, PAT x 18-28 against the divider at x 30)
+        .set    SG_SPR, 28
 sg_stcol:
         bsr     sg_tlon
         beq     9f
@@ -8687,22 +8710,22 @@ sg_stcol:
         lea     sg_fwr,%a1              | "ROW"
         bsr     sg_tx
         lea     SG_SMALL,%a0
-        moveq   #46,%d0
+        moveq   #SG_SPR-10,%d0
         moveq   #57,%d1
         moveq   #0,%d2
         lea     sg_fhpt,%a1             | "PAT"
         bsr     sg_tx
-1:      moveq   #SG_FCX-2,%d0           | the columns' lines (183: no rule under the heads, Zach)
-        moveq   #9,%d1
+1:      moveq   #SG_FCX-1,%d0           | the columns' lines, the whole height (183: no rule under the
+        moveq   #1,%d1                  | heads; 186: from the top, Zach)
         moveq   #0,%d2
         moveq   #2,%d3
-        moveq   #28,%d4
+        moveq   #32,%d4
         bsr     sg_lkdot
-        moveq   #SG_FCX+6,%d0
-        moveq   #9,%d1
+        moveq   #SG_FCX+5,%d0
+        moveq   #1,%d1
         moveq   #0,%d2
         moveq   #2,%d3
-        moveq   #28,%d4
+        moveq   #32,%d4
         bsr     sg_lkdot
                                         | (182: no line over each row's, Zach)
 8:      movem.l (%sp),%d2-%d6
@@ -15934,7 +15957,11 @@ sg_rlin2:
         lea     sg_b1,%a1
         bsr     sg_wid
         moveq   #57,%d1
-        sub.l   %d0,%d1
+        move.l  sg_gx,%d2               | (186: STEPS' against x 29)
+        cmpi.l  #32,%d2
+        bne.s   7f
+        moveq   #SG_SPR+1,%d1
+7:      sub.l   %d0,%d1
         move.l  %d1,%d0
         move.l  %d0,-(%sp)
         move.l  4(%sp),%d1

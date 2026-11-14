@@ -9393,11 +9393,8 @@ sg_lkkey:
         moveq   #0x32,%d1               | NO: an edit ends; else out (the panel too, as the step's
         cmp.l   %d1,%d0                 | window did)
         bne.s   1f
-        tst.l   sg_lked
-        beq.s   0f
-        clr.l   sg_lked
-        bra     sg_now
-0:      clr.l   sg_lknm
+        clr.l   sg_lked                 | (180: no edit to end first)
+        clr.l   sg_lknm
         moveq   #SG_WLK,%d1             | the window opened from Pages' panel: back to the panel (175)
         cmp.l   sg_win,%d1
         bne.s   6f
@@ -9513,20 +9510,8 @@ sg_lkyes:
         move.l  %d0,sg_win
         clr.l   sg_lked
         bra     sg_now
-2:      tst.l   sg_aud                  | (MIDI's ARP: shown, not lockable; build 171)
-        bne.s   0f
-        moveq   #1,%d0
-        cmp.l   sg_lkc,%d0
-        beq.s   9f
-0:      move.l  sg_lkc,%d0              | a lock picked: its edit on / off
-        move.l  sg_lkr,%d1
-        bsr     sg_lkat
-        tst.l   %d0
-        bmi.s   9f
-        moveq   #1,%d0
-        sub.l   sg_lked,%d0
-        move.l  %d0,sg_lked
-9:      bra     sg_now
+2:                                      | (180: a lock no longer needs YES; LEVEL changes it)
+        bra     sg_now
 
 | YES in the window: the step's trig -> trigless, else -> a trig; its locks kept.
 sg_lktt:
@@ -9719,9 +9704,21 @@ sg_lkenc:
 
 | LEVEL (sg_lvl's frame, the delta @8): the picked lock.
 sg_lklvl:
-        tst.l   sg_lked                 | only once YES picked it (build 169)
-        bne.s   0f
-        rts
+        tst.l   sg_lknm                 | (180, Zach: no YES first -- LEVEL changes the picked line; not
+        bne.s   8f                      | on a column's name, a SETUP shown, MIDI's NOTE (its note window,
+        move.l  sg_lkc,%d0              | YES) or ARP)
+        bsr     sg_lkpg
+        cmpi.l  #10,%d0
+        bge.s   8f
+        tst.l   sg_aud
+        bne.s   7f
+        moveq   #1,%d0
+        cmp.l   sg_lkc,%d0
+        bcc.s   8f                      | (columns 0 NOTE and 1 ARP)
+7:      moveq   #1,%d0                  | the value shown inverted from here till the cursor moves
+        move.l  %d0,sg_lked
+        bra.s   0f
+8:      rts
 0:      lea     -8(%sp),%sp
         movem.l %d2-%d3,(%sp)
         move.l  sg_lkc,%d0
@@ -16496,6 +16493,67 @@ sgn_st_partclear:                       | d0 = the Part: its eight names empty
         moveq   #1,%d0
         move.l  %d0,sgn_dirty
         rts
+
+| ---- STEPS in the arranger menu (180, Zach): ARR 1:'s eighth item, its empty slot (row 2, column 4; the
+|      record at 0x400be7d6: name 8 bytes, icon, YES handler; the menu's arrows skip a slot with no
+|      icon, 0x40031b30..). YES there: the menu closed (its NO's 0x40055ec0) and the view opened on the
+|      panel view (Split; the arranger's timeline). NO there leaves the view as ever.
+        .global sg_arst
+sg_arst:
+        lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        jsr     0x40055ec0
+        tst.l   sg_own
+        bne.s   1f
+        moveq   #1,%d0                  | the active track's side and row, as MIXER + MIDI
+        tst.l   0x80000012
+        beq.s   2f
+        moveq   #0,%d0
+2:      move.l  %d0,sg_aud
+        moveq   #0,%d0
+        move.b  0x100b14cc,%d0
+        andi.l  #7,%d0
+        move.l  %d0,sg_row
+        jsr     sg_mxin
+1:      clr.l   sg_pv
+        clr.l   sg_win
+        clr.l   sg_full
+        jsr     sg_vwset
+        clr.l   sg_mode
+        moveq   #-1,%d0
+        move.l  %d0,sg_zlst
+        jsr     sg_zset
+        jsr     sg_tlon
+        beq.s   3f
+        jsr     sg_tupd
+3:      jsr     sg_alab
+        clr.l   sg_idle
+        movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        jmp     sg_now
+
+        .balign 4
+        .global sg_stic
+sg_stic: .long  27, 13, 1, sg_stik, sg_stim     | the icon: 27 x 13, a long a column, row y at bit 19 + y
+        .long   27, 13, 1, sg_stik2, sg_stim    | picked: the play line a step on (the stock's pairs move too)
+sg_stik:
+        .long   0x00000000, 0x00000000, 0x00000000, 0x11400000, 0x14400000, 0x00000000
+        .long   0x05400000, 0x11000000, 0x04000000, 0x3fe00000, 0x00000000, 0x11400000
+        .long   0x14000000, 0x00400000, 0x05400000, 0x10000000, 0x05000000, 0x01400000
+        .long   0x10000000, 0x04400000, 0x15400000, 0x00000000, 0x01000000, 0x00000000
+        .long   0x00000000, 0x00000000, 0x00000000
+sg_stik2:
+        .long   0x00000000, 0x00000000, 0x00000000, 0x11400000, 0x14400000, 0x00000000
+        .long   0x05400000, 0x11000000, 0x04000000, 0x00000000, 0x00000000, 0x11400000
+        .long   0x3fe00000, 0x00400000, 0x05400000, 0x10000000, 0x05000000, 0x01400000
+        .long   0x10000000, 0x04400000, 0x15400000, 0x00000000, 0x01000000, 0x00000000
+        .long   0x00000000, 0x00000000, 0x00000000
+sg_stim:
+        .long   0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000
+        .long   0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000
+        .long   0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000
+        .long   0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000, 0xfff80000
+        .long   0xfff80000, 0xfff80000, 0xfff80000
 
 sgn_dirty: .long 0                      | names.work is due
 sgn_nowr: .long 0                       | names.work was unreadable: never overwritten

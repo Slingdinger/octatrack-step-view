@@ -85,6 +85,8 @@ MODULE = Module(
                "never reached in MIXER + MIDI's view (sg_kfarp does nothing there)", pad_to=6),
     ),
     symbol_refs=(
+        SymbolRef(0x400be7de, 0x0, "stepview", "sg_stic", "ARR 1:'s eighth item's icon (180): STEPS"),
+        SymbolRef(0x400be7e2, 0x0, "stepview", "sg_arst", "ARR 1:'s eighth item's YES (180): the view's arranger timeline"),
         SymbolRef(0x40061ed6, 0x400373dc, "stepview", "sg_beat",
                   "the sequencer step message's beat boxes: not on the MIDI ARP page"),
         SymbolRef(0x400bedc6, 0x400434d8, "stepview", "sg_lvlh",
@@ -229,5 +231,8 @@ MODULE = Module(
         SymbolRef(0x40061e90, 0x40052200, "stepview", "sg_poll",
                   "the UI's periodic message: then the ARP page's steps again if they changed"),
     ) + tuple(SymbolRef(a, 0x4005578c, "stepview", "sg_pkey", "a page key record's handler: in MIXER + MIDI's view a page key leaves the view first, then the stock's (build 174)") for a in PKEY_SLOTS),
-    pokes=(),
+    pokes=(
+        Poke(0x400be7d6, bytes(8), b"STEPS\0\0\0",
+             "ARR 1:'s eighth item's name (its empty slot): STEPS opens the view's arranger timeline (180)"),
+    ),
 )

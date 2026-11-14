@@ -23,7 +23,7 @@ Octatrack OS (1.40C, MKI and MKII).
   - [1. Tracks](#1-tracks-the-whole-pattern)
   - [2. Pages](#2-pages-one-track-all-64-steps)
   - [3. Pitch](#3-pitch-a-piano-roll-midi)
-  - [Split (hidden for now)](#split-hidden-for-now)
+  - [STEPS: the arranger's timeline](#steps-the-arrangers-timeline)
 - [The lock window](#the-lock-window): every p-lock on a step
   - [The note window (MIDI)](#the-note-window-midi)
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
@@ -165,7 +165,8 @@ more parameters (+3).*
 | **DOWN** past the grid's last row | Into the panel, the same. |
 | **LEFT / RIGHT**, a **page key** | Pick a column. It widens. |
 | **UP / DOWN** | Pick a line. **DOWN** past the last goes to the column's name. **UP** off the first goes back to the grid. |
-| **YES** on a line | Edit it: **LEVEL** changes it. On MIDI's NOTE column, the [note window](#the-note-window-midi). |
+| **LEVEL** on a line | Changes it, no YES needed: an unlocked one gets locked, from the Part's value, and its value inverts until the cursor moves. |
+| **YES** on a line | On MIDI's NOTE column, the [note window](#the-note-window-midi). Elsewhere nothing. |
 | **YES** on a column's name, or its **page key twice** | The full [lock window](#the-lock-window) on that column. **NO** there comes back here. |
 | **FUNC + a page key** | That column's SETUP page, as in the [lock window](#setup-pages). |
 | Hold **FUNC** | The narrow columns show values. |
@@ -239,11 +240,11 @@ Moving around:
 - **Knob E** slides the keyboard up and down a semitone, and **FUNC + knob E** an octave.
 - **PATTERN + trig** and **BANK + trig** still pick patterns and banks as usual.
 
-### Split (hidden for now)
+### STEPS: the arranger's timeline
 
-**This version hides Split: MIXER + MIDI no longer reaches it.** Its code is still there and will come
-back. While it's hidden, track names and the arrangement controls below can't be reached. What follows
-describes it as it was.
+With the arranger on, **FUNC + BANK** opens the ARR menu. Its eighth item, **STEPS**, opens this view.
+**NO** leaves it. MIXER + MIDI no longer reaches it: its cycle is Tracks, Pages and Pitch. Track names
+(below) can't be set while it's out of the cycle.
 
 
 The screen split in two: the grid on the right, and on the left a column with the cursor step's trig, the
@@ -322,7 +323,7 @@ How to read it:
 | A **page key**, or **LEFT / RIGHT** | Pick a column. |
 | **FUNC + a page key** | That column's [SETUP page](#setup-pages). The same again goes back. |
 | **UP / DOWN** | Pick a parameter in the column. |
-| **YES** | Edit it: its value inverts, and **LEVEL** changes it (an unlocked one gets locked, starting from the Part's value). YES again or NO ends the edit. On a MIDI step's NOTE column, YES opens the [note window](#the-note-window-midi) instead. |
+| **LEVEL** | Change the picked parameter, no YES needed: an unlocked one gets locked, starting from the Part's value, and its value inverts until the cursor moves. Not on MIDI's NOTE column: there **YES** opens the [note window](#the-note-window-midi). |
 | **FUNC + YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
 | Hold **FUNC** | The narrow columns show values too. |
 | Press a **knob** | Remove that parameter's lock. |
@@ -336,7 +337,7 @@ LFOS, FX1S, FX2S; on MIDI NOTS, ARPS, LFOS, CT1S, CT2S). **FUNC + the key** agai
 in the lock window and in Pages' panel, on both sides.
 
 - **Shown, not locked.** The Octatrack can't p-lock SETUP values, so they show the Part's values and
-  YES does nothing. A machine without a SETUP page (THRU, NEIGHBOR) shows an empty column.
+  LEVEL does nothing. A machine without a SETUP page (THRU, NEIGHBOR) shows an empty column.
 - **FX SETUP locks (audio, with PLOCKS P2).** With octabam's PLOCKS P2 module in your build (see
   [Adding it to your build](#adding-it-to-your-build)), FX1S and FX2S lock like the main page: the dot,
   the Part's value, YES and LEVEL to lock.
@@ -411,7 +412,7 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 ### Track names (MIDI)
 
 Each MIDI track can have a 12-character name, per Part and bank. It shows in the grid's title in place
-of T1-T8. (Hidden in this version, with [Split](#split-hidden-for-now).) To set it in Split (arranger off), press LEFT at the grid's first step: the cursor lands on
+of T1-T8. (Not reachable in this version: see [STEPS](#steps-the-arrangers-timeline).) To set it in Split (arranger off), press LEFT at the grid's first step: the cursor lands on
 the name. Hold **FUNC** for a
 keyboard of characters. Names are saved with the project.
 
@@ -450,8 +451,8 @@ it.
 - **MIXER + MIDI to get in.** The Octatrack has no spare page key. STEP VIEW draws on top of the MIDI
   ARP page but only while it's open, so the arpeggiator stays fully usable. MIXER + MIDI works from
   any page and doesn't take a key away from anything.
-- **The same combo to switch views.** One gesture to remember. Split is hidden for now to keep the
-  cycle short.
+- **The same combo to switch views.** One gesture to remember. The arranger's view moved to the
+  arranger's own menu (STEPS) to keep the cycle short.
 - **MIDI alone for the other side.** It's the key that already switches the Octatrack between its audio
   and MIDI tracks, so in STEP VIEW it does the same thing.
 - **NO to go back.** Everywhere else on the Octatrack NO means "back" or "cancel", so it does here
@@ -467,11 +468,12 @@ it.
   Every parameter is listed, so it's always in the same place; the column you're in widens to show
   values, and FUNC, the Octatrack's "show me more" key, shows the rest. Pages uses the same columns,
   four lines tall, so it shows the most-used parameters and the locks.
-- **The Split view for the arranger** (hidden for now). The arranger is the part of the Octatrack that's hardest to
+- **STEPS for the arranger**, in the ARR menu. The arranger is the part of the Octatrack that's hardest to
   see. The Split view puts the arrangement's timeline next to the numbers you need to edit it.
 - **Nothing outside STEP VIEW changes**, apart from these:
   - **MIXER** opens its window when you let go, not when you press it, so that MIXER + MIDI can work.
   - **FUNC + BANK** twice with the arranger on opens the arrangement editor.
+  - The ARR menu (FUNC + BANK, arranger on) has an eighth item, **STEPS**.
   - In the stock SCALE window (FUNC + SCALE / PAGE), **UP / DOWN** move between rows and **SCALE**
     opens ALL TRACK SCALES.
   - Copying a track in grid recording can convert between audio and MIDI tracks.

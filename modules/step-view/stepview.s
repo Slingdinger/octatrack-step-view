@@ -8622,8 +8622,7 @@ sg_tnames:
         rts
 
 | (181, Zach) STEPS' left column: ROW (x 24), a 5-px flag column (x 38-42: M, the infinity, H), PAT
-| (against the divider); the heads on the top line, a dotted rule under them, dotted lines between the
-| columns. Only in the arranger's timeline (sg_tlon). The
+| (against the divider); the heads on the top line, dotted lines between the columns. Only in the arranger's timeline (sg_tlon). The
 | countdown before the next row and the clock are gone. Uses d0 d1 a0 a1.
         .set    SG_RCX, 24
         .set    SG_FCX, 38
@@ -8646,13 +8645,7 @@ sg_stcol:
         moveq   #0,%d2
         lea     sg_fhpt,%a1             | "PAT"
         bsr     sg_tx
-1:      moveq   #SG_RCX,%d0             | the rule under the heads
-        moveq   #8,%d1
-        moveq   #2,%d2
-        moveq   #0,%d3
-        moveq   #17,%d4
-        bsr     sg_lkdot
-        moveq   #SG_FCX-2,%d0           | the columns' lines
+1:      moveq   #SG_FCX-2,%d0           | the columns' lines (183: no rule under the heads, Zach)
         moveq   #9,%d1
         moveq   #0,%d2
         moveq   #2,%d3

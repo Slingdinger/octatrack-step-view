@@ -248,7 +248,7 @@ With the arranger on, **FUNC + BANK** opens the ARR menu. Its eighth item, **STE
 
 
 The screen split in two: the grid on the right, the arrangement's timeline; on the left, beside each
-row's start, three columns under ROW and PAT, with dotted lines as in the arranger's editor:
+row's start, three columns under ROW and PAT, with dotted lines between them:
 
 - **ROW**: the arrangement row.
 - The flag column: **M** on the row playing (YES opens its mutes), **∞** on a row followed by a LOOP,

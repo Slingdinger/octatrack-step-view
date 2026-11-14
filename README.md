@@ -18,6 +18,10 @@ It works on both sides of the Octatrack, the 8 **audio** tracks and the 8 **MIDI
 It's a module for [octabam](https://github.com/sambanks/octabam), a toolkit for building your own
 Octatrack OS (1.40C, MKI and MKII).
 
+> **Unofficial.** STEP VIEW is a community project, not affiliated with or endorsed by Elektron. No
+> Elektron code is in this repo: you build it into your own copy of the OS. **Version 0.9**, for testing:
+> tested in octabam's emulator and on an MKI, not yet on an MKII. Back up your card first.
+
 ![Tracks: the 8 MIDI tracks](docs/screens/tracks-midi.png)
 
 ---

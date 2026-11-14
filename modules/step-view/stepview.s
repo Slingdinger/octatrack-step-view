@@ -11715,8 +11715,18 @@ sg_kmidi:
         bne     9f
         clr.l   sg_mxk
         tst.l   sg_mxa                  | MIDI alone in the view: AUDIO on / off
-        beq.s   0f
+        beq     0f
         clr.l   sg_mxa
+        tst.l   sg_pv                   | (190, Zach: in PITCH, MIDI leaves the view for the MIDI page, as
+        beq.s   .Lkm_v                  | NO does)
+        lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        clr.l   sg_oam                  | (MIDI mode stays, even when the view was opened in audio mode)
+        jsr     sg_nout
+        movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        rts
+.Lkm_v:
         moveq   #1,%d0                  | the other side: the Octatrack's mode with it, the view on its
         sub.l   sg_aud,%d0              | page 2 (sg_amode, build 149)
         bsr     sg_amode

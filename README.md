@@ -173,7 +173,8 @@ S-/- no scenes.*
 
 ### 3. Pitch: a piano roll (MIDI)
 
-**Press a MIDI track's key twice**, in MIDI mode, from any page. It opens on that track. **NO** leaves.
+**Press a MIDI track's key twice**, in MIDI mode, from any page. It opens on that track. **NO** or
+**MIDI** leaves, to the MIDI page.
 
 ![Pitch, ROLL 16](docs/screens/pitch-roll16.png)
 *ROLL 16: one page of 16 steps, a keyboard on the left.*

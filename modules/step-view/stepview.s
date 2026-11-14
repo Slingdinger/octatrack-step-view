@@ -1803,7 +1803,7 @@ sg_mv:
         bra     6f
 0:      tst.l   sg_full                 | the full view: along all 64, wrapping (build 92)
         beq     0f
-        bsr     sg_tnv                  | TRKS: the track number left of step 1 (build 143)
+        jsr     sg_tnv                  | TRKS: the track number left of step 1 (build 143)
         bne     .Lmv_w
         tst.l   sg_tlcur                 | (176, Zach) on the length: RIGHT wraps to the track number, LEFT
         beq.s   .Lmv_t                  | back to the track's last step
@@ -6246,7 +6246,12 @@ sg_panel:
 |      +0x10), the 32 lock bytes (+0x30 + 32 s) and the trig word (+0x830 + 2 s), written to the bank
 |      and its CS1 copy, the step's track bit (0x46c7d2e4) set for a lock, then the track's refresh
 |      (0x40029b9c(t): the dirty flags, 0x4009da20(t) and (8 + t), the LEDs), as that paste ends.
-        .set    SG_CSZ, 36              | a step in the clip: +0 the masks' bits, +2 the trig word, +4 the locks
+        .set    SG_CSZ, 48              | a step in the clip: +0 the masks' bits, +2 the trig word, +4 the locks,
+                                        | +36 AUDIO's PLOCKS P2 page-2 locks (12; build 178)
+|      AUDIO (build 178, Zach: copy / clear / paste everywhere): an audio step is its bits of the masks
+|      +0x00 trig, +0x08 trigless, +0x10 p-lock, +0x18 one-shot, +0x40 swing, +0x48 slide (the recorder
+|      masks +0x20-0x3f left as they are), its trig word (+0x89a + 2 s), its 32 locks (+0x59 + 32 s) and,
+|      with PLOCKS P2, its page-2 locks. A clip keeps its side (sg_ckind): it pastes on the same side.
 
 | a3 = the cursor track's record in the bank, a4 = its CS1 copy. Uses d0 d1 a0.
 sg_crec:
@@ -6255,11 +6260,17 @@ sg_crec:
         beq.s   1f
         movea.l %d0,%a0
 1:      move.l  sg_row,%d0
-        move.l  #0x8b0,%d1
+        tst.l   sg_aud                  | (AUDIO: the audio track's record, build 178)
+        beq.s   2f
+        move.l  #0x91a,%d1
+        muls.l  %d1,%d0
+        adda.l  %d0,%a0
+        bra.s   3f
+2:      move.l  #0x8b0,%d1
         muls.l  %d1,%d0
         adda.l  %d0,%a0
         adda.l  #0x48d0,%a0
-        movea.l %a0,%a3
+3:      movea.l %a0,%a3
         movea.l %a0,%a4
         suba.l  0x46c82456,%a4
         adda.l  #0x1001614e,%a4
@@ -6275,6 +6286,8 @@ sg_cbyte:
 
 | d0 = step, a1 = a clip slot: the step of the record at a3 into it. Uses d0 d1 a0.
 sg_cget:
+        tst.l   sg_aud
+        bne     sg_caget
         lea     -12(%sp),%sp
         movem.l %d2-%d3/%a2,(%sp)
         bsr     sg_cbyte
@@ -6308,6 +6321,8 @@ sg_cget:
 
 | d0 = step, a1 = a clip slot: written to the step of the record (a3) and its CS1 copy (a4). Uses d0 d1 a0.
 sg_cput:
+        tst.l   sg_aud
+        bne     sg_caput
         lea     -20(%sp),%sp
         movem.l %d2-%d5/%a2,(%sp)
         move.l  %d0,%d4                 | d4: the step
@@ -6366,10 +6381,17 @@ sg_cput:
 sg_cclr:
         lea     sg_cblk,%a1
         clr.w   (%a1)
+        moveq   #-1,%d1                 | (AUDIO's page-2 locks none, build 178)
+        move.l  %d1,36(%a1)
+        move.l  %d1,40(%a1)
+        move.l  %d1,44(%a1)
         move.l  %d0,%d1
         add.l   %d1,%d1
         lea     (0,%a3,%d1.l),%a0
-        move.w  0x830(%a0),%d1
+        tst.l   sg_aud
+        beq.s   1f
+        adda.l  #0x89a-0x830,%a0
+1:      move.w  0x830(%a0),%d1
         andi.l  #0x7f,%d1
         move.w  %d1,2(%a1)
         moveq   #-1,%d1
@@ -6407,6 +6429,132 @@ sg_crun:
         move.l  %d5,%d4
         move.l  %d0,%d5
 1:      rts
+
+| (178) AUDIO's sg_cget: d0 = step, a1 = a clip slot: the audio step at a3 into it -- the masks' bits
+| (sg_amk, bit i the i-th), the trig word, the locks, PLOCKS P2's 12 (0xff without it). Uses d0 d1 a0.
+sg_caget:
+        lea     -20(%sp),%sp
+        movem.l %d2-%d4/%a2-%a3,(%sp)
+        move.l  %d0,%d4                 | d4: the step
+        bsr     sg_cbyte
+        move.l  %d1,%d2                 | d2: its mask byte
+        moveq   #0,%d3
+        lea     sg_amk,%a2
+        moveq   #5,%d1
+1:      moveq   #0,%d0
+        move.b  (0,%a2,%d1.l),%d0
+        add.l   %d2,%d0
+        btst    %d4,(0,%a3,%d0.l)
+        beq.s   2f
+        bset    %d1,%d3
+2:      subq.l  #1,%d1
+        bpl.s   1b
+        move.b  %d3,(%a1)
+        move.b  #1,1(%a1)
+        move.l  %d4,%d1
+        add.l   %d1,%d1
+        lea     (0,%a3,%d1.l),%a0
+        adda.l  #0x89a,%a0
+        move.w  (%a0),2(%a1)            | the trig word
+        move.l  %d4,%d1
+        lsl.l   #5,%d1
+        lea     (0x59,%a3,%d1.l),%a0    | the locks
+        lea     4(%a1),%a2
+        moveq   #32,%d2
+3:      move.b  (%a0)+,(%a2)+
+        subq.l  #1,%d2
+        bne.s   3b
+        moveq   #-1,%d0                 | page 2
+        move.l  %d0,36(%a1)
+        move.l  %d0,40(%a1)
+        move.l  %d0,44(%a1)
+        bsr     sg_cp2
+        move.l  %a0,%d0
+        beq.s   4f
+        move.l  (%a0),36(%a1)
+        move.l  4(%a0),40(%a1)
+        move.l  8(%a0),44(%a1)
+4:      movem.l (%sp),%d2-%d4/%a2-%a3
+        lea     20(%sp),%sp
+        rts
+
+| (178) AUDIO's sg_cput: d0 = step, a1 = a clip slot: written to the audio step at a3 and its CS1 copy a4,
+| and its page-2 locks with PLOCKS P2. Uses d0 d1 a0.
+sg_caput:
+        lea     -24(%sp),%sp
+        movem.l %d2-%d5/%a2-%a3,(%sp)
+        move.l  %d0,%d4                 | d4: the step
+        bsr     sg_cbyte
+        move.l  %d1,%d2                 | d2: its mask byte
+        moveq   #0,%d3
+        move.b  (%a1),%d3               | d3: the masks' bits
+        lea     sg_amk,%a2
+        moveq   #5,%d5
+1:      moveq   #0,%d0
+        move.b  (0,%a2,%d5.l),%d0
+        add.l   %d2,%d0
+        btst    %d5,%d3
+        beq.s   2f
+        bset    %d4,(0,%a3,%d0.l)
+        bset    %d4,(0,%a4,%d0.l)
+        bra.s   3f
+2:      bclr    %d4,(0,%a3,%d0.l)
+        bclr    %d4,(0,%a4,%d0.l)
+3:      subq.l  #1,%d5
+        bpl.s   1b
+        move.l  %d4,%d1                 | the trig word
+        add.l   %d1,%d1
+        addi.l  #0x89a,%d1
+        move.w  2(%a1),%d0
+        move.w  %d0,(0,%a3,%d1.l)
+        move.w  %d0,(0,%a4,%d1.l)
+        move.l  %d4,%d1                 | the locks
+        lsl.l   #5,%d1
+        lea     (0x59,%a3,%d1.l),%a0
+        lea     (0x59,%a4,%d1.l),%a2
+        moveq   #0,%d5
+4:      move.b  (4,%a1,%d5.l),%d0
+        move.b  %d0,(%a0)+
+        move.b  %d0,(%a2)+
+        addq.l  #1,%d5
+        moveq   #32,%d0
+        cmp.l   %d0,%d5
+        blt.s   4b
+        move.l  %d4,%d0                 | page 2 (PLOCKS P2)
+        movea.l %a1,%a2
+        bsr     sg_cp2
+        move.l  %a0,%d0
+        beq.s   6f
+        move.l  36(%a2),(%a0)
+        move.l  40(%a2),4(%a0)
+        move.l  44(%a2),8(%a0)
+        movea.l 0x46c82456,%a0          | its bank marked (the CS1 copy, the save)
+        move.l  %a0,%d0
+        subi.l  #0x400e21e0,%d0
+        move.l  #0x9b340,%d1
+        divu.l  %d1,%d0
+        jsr     plk_sv_mark
+6:      movea.l %a2,%a1
+        movem.l (%sp),%d2-%d5/%a2-%a3
+        lea     24(%sp),%sp
+        rts
+
+| (178) a0 = PLOCKS P2's 12 bytes for step d4 of the audio track at a3, 0 without it. Uses d0 d1 a0.
+sg_cp2:
+        movea.l %a1,%a0                 | (a1 kept)
+        move.l  %a0,-(%sp)
+        suba.l  %a0,%a0
+        move.l  #plk_sv_loc,%d0
+        beq.s   9f
+        movea.l %a3,%a0
+        jsr     plk_sv_loc
+        move.l  %a0,%d0
+        beq.s   9f
+        move.l  %d4,%d0
+        mulu.w  #12,%d0
+        adda.l  %d0,%a0
+9:      movea.l (%sp)+,%a1
+        rts
 
 | a1 = clip slot d0. Uses d0 d1.
 sg_cslot:
@@ -6516,6 +6664,8 @@ sg_cop:
         tst.l   %d6
         bne.s   1f
         clr.l   0x460d0ffa              | (the stock's clipboard no longer the latest: build 113)
+        move.l  sg_aud,%d0              | (its side, build 178)
+        move.l  %d0,sg_ckind
         clr.l   sg_cn                   | a copy: the clip starts again
         clr.l   sg_ctrk                 | (not a whole track's, sg_ktrk sets it after)
         move.l  %d3,sg_ck
@@ -6567,7 +6717,13 @@ sg_cop:
 | cursor, a row at the cursor's page, pages at theirs. Uses everything but a5 a6.
 sg_cpaste:
         tst.l   sg_cn
-        bne.s   0f
+        beq.s   1f
+        move.l  sg_ckind,%d0            | (a clip pastes on its own side, build 178)
+        cmp.l   sg_aud,%d0
+        beq.s   0f
+        lea     sg_fcx,%a0
+        bra     sg_cmsg0
+1:
         lea     sg_fce,%a0              | "EMPTY 0"... the clip is: "CLIP 0"
         moveq   #0,%d0
         bra     sg_cmsg
@@ -6686,13 +6842,7 @@ sg_kcop:
         bne     sg_ktrk
         tst.l   sg_tlcur                 | on a length: nothing (176)
         bne     9f
-        tst.l   sg_aud                  | AUDIO: CLEAR the cursor's step only (sg_aclr, the audio track's
-        beq.s   .Lkc_m                  | record; 141-142 cleared the MIDI track's step through sg_ndel),
-        moveq   #1,%d1                  | COPY / PASTE nothing (build 110)
-        cmp.l   %d1,%d0
-        bne     9f
-        bra     sg_aclr
-.Lkc_m: lea     -40(%sp),%sp
+.Lkc_m: lea     -40(%sp),%sp            | (both sides, build 178; AUDIO CLEAR only in 110-177)
         movem.l %d2-%d7/%a2-%a5,(%sp)
         clr.l   sg_idle
         move.l  %d0,%d6
@@ -13353,13 +13503,7 @@ sg_tladd:
 | LEN and SCALE (another clip: as PASTE at step 1). AUDIO: CLEAR only (sg_aclrt). Uses everything but
 | a5 a6.
 sg_ktrk:
-        tst.l   sg_aud
-        beq.s   1f
-        moveq   #1,%d1
-        cmp.l   %d1,%d0
-        bne     9f
-        bra     sg_aclrt
-1:      lea     -40(%sp),%sp
+        lea     -40(%sp),%sp            | (AUDIO too, build 178; CLEAR only, sg_aclrt, in 143-177)
         movem.l %d2-%d7/%a2-%a5,(%sp)
         clr.l   sg_idle
         clr.l   sg_step
@@ -13376,10 +13520,11 @@ sg_ktrk:
         tst.l   %d6
         bne.s   3f
         bsr     sg_crec                 | COPY: the track's LEN and SCALE with the clip
+        bsr     sg_clo
         moveq   #0,%d0
-        move.b  0x28(%a3),%d0
+        move.b  (0,%a3,%d1.l),%d0
         move.l  %d0,sg_ctl
-        move.b  0x29(%a3),%d0
+        move.b  (1,%a3,%d1.l),%d0
         move.l  %d0,sg_cts
         moveq   #1,%d0
         move.l  %d0,sg_ctrk
@@ -13388,16 +13533,30 @@ sg_ktrk:
         tst.l   sg_ctrk                 | a track's clip: its LEN and SCALE too
         beq.s   3f
         bsr     sg_crec
+        tst.l   sg_cn                   | (a clip of the other side: nothing)
+        beq.s   3f
+        move.l  sg_ckind,%d0
+        cmp.l   sg_aud,%d0
+        bne.s   3f
+        bsr     sg_clo
         move.l  sg_ctl,%d0
-        move.b  %d0,0x28(%a3)
-        move.b  %d0,0x28(%a4)
+        move.b  %d0,(0,%a3,%d1.l)
+        move.b  %d0,(0,%a4,%d1.l)
         move.l  sg_cts,%d0
-        move.b  %d0,0x29(%a3)
-        move.b  %d0,0x29(%a4)
+        move.b  %d0,(1,%a3,%d1.l)
+        move.b  %d0,(1,%a4,%d1.l)
         bsr     sg_sref
 3:      movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
         bra     sg_now
+9:      rts
+
+| (178) d1 = LEN's offset in the cursor's track record: MIDI +0x28, AUDIO +0x50 (SCALE at + 1). Uses d1.
+sg_clo:
+        moveq   #0x28,%d1
+        tst.l   sg_aud
+        beq.s   9f
+        moveq   #0x50,%d1
 9:      rts
 
 | CLEAR on an audio track's number (build 143): its 64 steps -- trig, trigless and p-lock masks clear,
@@ -15550,6 +15709,7 @@ sg_nlay: .long  0                       | 1: the 4-page window's arrangement lay
 sg_frw: .asciz  "ROW %02d"
 sg_fsv: .asciz  "SAVE"
 sg_fck: .asciz  "%02d:%02d"
+sg_fcx:  .asciz  "OTHER SIDE"
 sg_fcm: .asciz  "%s %d"
 sg_fri: .asciz  "R%02d %c%02d X%d OF%d LN%d"
 sg_fr1: .asciz  "R%02d"
@@ -15747,7 +15907,7 @@ sg_cn:  .long   0                       | the clip's steps, 0 empty
 sg_ck:  .long   0                       | its kind: 0 a run, 1 a row, 2 pages
 sg_cpm: .long   0                       | pages: which
 sg_ccnt: .long  0                       | the steps a copy or clear took
-sg_cblk: .space 36                      | a cleared step (sg_cclr)
+sg_cblk: .space 48                      | a cleared step (sg_cclr)
 sg_ftk: .asciz  "MIDI:"                 | (AUDIO: in AUDIO, sg_alab; TRKS: until build 146)
         .space  4
 sg_fpg: .asciz  "MIDI PG:"              | (AUDIO PG: in AUDIO)
@@ -15871,6 +16031,9 @@ sg_fpc: .long   -1                      | the full view's play column, the row's
 sg_tpo: .long   0                       | the page playing's place in the timeline's first screen row (93)
 sg_half: .long  0                       | 1: drawing a track's second line (build 93)
 sg_gx:  .long   SG_GX                   | the grid's first column (sg_zset)
+sg_ckind: .long 0                       | the clip's side: 1 AUDIO (build 178)
+sg_amk:  .byte  0x00, 0x08, 0x10, 0x18, 0x40, 0x48  | AUDIO's step masks (sg_caget / sg_caput)
+        .even
 sg_tlcur: .long 0                        | 1: the cursor on a track's length in TRKS (176)
 sg_fhinv: .long 0                       | sg_fhrt: the number inverted
 sg_tnum: .long 0                        | 1: the cursor on the track number in TRKS (build 143)
@@ -16153,7 +16316,7 @@ sgn_mw: .asciz  "w"
         .section .bss
         .balign 4
 sg_uh:  .space  SG_UN*SG_PSZ            | the undo states, 365,680 B
-sg_clip: .space 64*36                   | the clip: 64 steps of SG_CSZ (build 82)
+sg_clip: .space 64*48                   | the clip: 64 steps of SG_CSZ (build 82)
 sg_mbuf: .space 0x9c4                   | a MIDI track's clipboard, an audio track converted (build 113)
 sg_slm: .space  64                      | its steps slid into
         .balign 4

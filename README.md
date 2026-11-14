@@ -128,8 +128,8 @@ pattern's length is left alone: change it in the Octatrack's SCALE menu.
 **Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),
 **FUNC + STOP** pastes it onto the track you're on, and **FUNC + PLAY** clears all its steps.
-**UP / DOWN** move between track numbers, and **RIGHT** goes back to step 1. **FUNC + NO** undoes. On
-the audio side, CLEAR only.
+**UP / DOWN** move between track numbers, and **RIGHT** goes back to step 1. **FUNC + NO** undoes. It
+works the same on the audio and MIDI sides.
 
 ![Tracks, the cursor on a track number](docs/screens/tracks-number.png)
 *The cursor on track 1's number (it flashes), ready to copy, clear or paste the whole track.*
@@ -386,9 +386,12 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 - **FUNC + LEVEL** marks a run of steps from the cursor. COPY, CLEAR or PASTE then work on that run.
   PASTE repeats what you copied to fill the run.
 - On a **track number** (Tracks): COPY, CLEAR and PASTE act on the whole track, length and scale
-  included. On the audio side, CLEAR only.
+  included.
 - With nothing marked: **COPY** copies the cursor's step, **CLEAR** clears it, and **PASTE** puts the
   copy at the cursor.
+- It works the same on both sides. An audio step takes its trig (or trigless trig), its p-locks, its
+  micro-timing, count and condition, its one-shot, swing and slide, and with PLOCKS P2 its FX SETUP
+  locks. A copy pastes on the side it came from ("OTHER SIDE" otherwise).
 - **Copying between audio and MIDI tracks** (grid recording's FUNC + REC / FUNC + STOP) converts
   between them. An audio track's pitch becomes notes, and an OCTA-303 line keeps its accents and
   slides.

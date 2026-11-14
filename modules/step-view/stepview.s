@@ -15462,6 +15462,9 @@ sg_kfarp:
 sg_fhdr:
         tst.l   sg_view                 | (the 8-track window's own, build 100)
         beq     sg_fhdt
+        moveq   #1,%d0                  | (185, Zach: PAGES as TRKS -- its label, the name, the pattern,
+        move.l  %d0,sg_fhpg             | the cursor's page in the boxes; no lengths)
+        bra     sg_fhdt
         lea     -12(%sp),%sp
         movem.l %d2-%d4,(%sp)
         tst.l   sg_umt                  | a message (undo, copy, CLEAR?, ZOOM) up: it at the left
@@ -15570,7 +15573,14 @@ sg_fhdt:
         move.l  %d0,-(%sp)
         bsr     sg_pf
         move.l  (%sp)+,%d0
-        moveq   #63,%d1                 | in view: the window's first page .. its last
+        tst.l   sg_fhpg                 | (185, PAGES: the cursor's page filled)
+        beq.s   0f
+        move.l  sg_step,%d1
+        lsr.l   #4,%d1
+        cmp.l   %d1,%d6
+        beq.s   2f
+        bra.s   1f
+0:      moveq   #63,%d1                 | in view: the window's first page .. its last
         and.l   sg_fwin,%d1
         lsr.l   #4,%d1
         cmp.l   %d1,%d6
@@ -15602,6 +15612,8 @@ sg_fhdt:
         bsr     sg_fhrx
         move.l  %d4,%d7                 | d7: the cell's x (8 px, its glyphs' x0 + 1)
         subq.l  #4,%d7
+        tst.l   %d3                     | (185, Zach: stopped, the >> steady; no "--")
+        bmi.s   3f
         moveq   #32,%d0                 | the flash: the bars left, inverted
         and.l   sg_mbk,%d0
         beq.s   3f
@@ -15674,7 +15686,10 @@ sg_fhdt:
         bra     .Lfh_l
 2:      lea     SG_SMALL,%a0
         lea     sg_ftk,%a1
-        moveq   #1,%d0
+        tst.l   sg_fhpg
+        beq.s   3f
+        lea     sg_fpg,%a1
+3:      moveq   #1,%d0
         moveq   #57,%d1
         moveq   #0,%d2
         bsr     sg_tx
@@ -15716,8 +15731,28 @@ sg_fhdt:
         moveq   #57,%d1
         moveq   #0,%d2
         bsr     sg_tx
-.Lfh_l: moveq   #0,%d7                  | each track's length at the right of its row
-1:      move.l  %d7,%d1
+.Lfh_l: tst.l   sg_fhpg                 | (PAGES: no lengths)
+        bne     .Lfh_x
+        moveq   #0,%d7                  | each track's length at the right of its row
+1:      tst.l   sg_tlcur                | (185: the inverted one last, so the next row's box clear leaves
+        beq.s   0f                      | its margin)
+        cmp.l   sg_row,%d7
+        beq.s   3f
+0:      bsr.s   .Lfh_len
+3:      addq.l  #1,%d7
+        moveq   #8,%d0
+        cmp.l   %d0,%d7
+        blt.s   1b
+        tst.l   sg_tlcur
+        beq.s   .Lfh_x
+        move.l  sg_row,%d7
+        bsr.s   .Lfh_len
+.Lfh_x: clr.l   sg_fhpg
+        movem.l (%sp),%d2-%d7/%a3
+        lea     28(%sp),%sp
+        rts
+.Lfh_len:
+        move.l  %d7,%d1
         bsr     sg_trk
         move.l  %d6,-(%sp)
         pea     sg_fsd
@@ -15735,14 +15770,7 @@ sg_fhdt:
         bne.s   2f
         moveq   #1,%d0
         move.l  %d0,sg_fhinv
-2:      bsr     sg_fhrt
-        addq.l  #1,%d7
-        moveq   #8,%d0
-        cmp.l   %d0,%d7
-        blt.s   1b
-        movem.l (%sp),%d2-%d7/%a3
-        lea     28(%sp),%sp
-        rts
+2:      bra     sg_fhrt
 
 | d0 = bank << 4 | pattern: "A03" into sg_b1. Uses d0 d1 a0 a1.
 sg_fhpn:
@@ -16408,6 +16436,7 @@ sg_ckind: .long 0                       | the clip's side: 1 AUDIO (build 178)
 sg_amk:  .byte  0x00, 0x08, 0x10, 0x18, 0x40, 0x48  | AUDIO's step masks (sg_caget / sg_caput)
         .even
 sg_tlcur: .long 0                        | 1: the cursor on a track's length in TRKS (176)
+sg_fhpg: .long  0                       | sg_fhdt drawing PAGES' title (185)
 sg_fhinv: .long 0                       | sg_fhrt: the number inverted
 sg_tnum: .long 0                        | 1: the cursor on the track number in TRKS (build 143)
 sg_ctrk: .long 0                        | 1: the clip is a whole track's (sg_ktrk), its LEN and SCALE:

@@ -247,8 +247,17 @@ With the arranger on, **FUNC + BANK** opens the ARR menu. Its eighth item, **STE
 (below) can't be set while it's out of the cycle.
 
 
-The screen split in two: the grid on the right, and on the left a column with the cursor step's trig, the
-pattern cues (the pattern playing and the one coming, beside the grid) and the play clock at the bottom.
+The screen split in two: the grid on the right, the arrangement's timeline; on the left, beside each
+row's start, three columns under ROW and PAT, with dotted lines as in the arranger's editor:
+
+- **ROW**: the arrangement row.
+- The flag column: **M** on the row playing (YES opens its mutes), **∞** on a row followed by a LOOP,
+  **H** on a row followed by a HALT.
+- **PAT**: the row's pattern. The next row's flashes until it starts.
+
+The left of the column is left empty on purpose. The clock, the countdown and the step's trig are gone.
+
+(What follows is the view's earlier description.)
 It was designed as the arranger's companion, and follows it: turn the arranger on or off and Split
 switches with it.
 

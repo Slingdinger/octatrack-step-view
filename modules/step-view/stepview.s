@@ -3595,6 +3595,7 @@ sg_run:
         bra.s   1f
 0:      bsr     sg_panel
         bsr     sg_tnames               | (after the panel: they are on its edge, build 89)
+        bsr     sg_stcol                | (181: STEPS' column heads and lines)
 1:
         moveq   #0,%d0                  | the frame's top line across the whole screen (build 91: the
         moveq   #0,%d1                  | stock's x 8-119 since the strips went in 82; last, as the top
@@ -5676,7 +5677,10 @@ sg_panel:
         moveq   #50,%d1
         bsr     sg_tx
 1:
+        bsr     sg_tlon                 | (181: not in the arranger's timeline, STEPS)
+        bne.s   0f
         bsr     sg_ckdraw               | the time, at the panel's foot (build 154; top left 88-153)
+0:
         tst.l   sg_umt                  | an undo / redo just now: its message at the panel's top, inverted,
         ble.s   1f                      | the whole line its own
         lea     SG_SMALL,%a0
@@ -5689,6 +5693,8 @@ sg_panel:
 1:      bsr     sg_arr                  | the row against the divider (build 154: the step count left of it
         tst.l   %d1                     | and the time gone from the top line)
         bmi.s   2f
+        bsr     sg_tlon                 | (181: STEPS heads its columns instead, sg_stcol)
+        bne.s   2f
         moveq   #57,%d1
         bsr     sg_rowtx
 2:      bsr     sg_arr                  | the page / pages (the longest track's), "1/4", at the first row's
@@ -5805,24 +5811,27 @@ sg_panel:
         move.l  %d0,-(%sp)              | the timeline (build 90): the play triangle 1 px before the
         bsr     sg_tlon                 | pattern playing, M before it (81-89: M at the left, the
         beq.s   1f                      | triangle over the countdown)
-        move.l  (%sp),%d0
-        subq.l  #4,%d0
-        bsr     sg_ptri
-        moveq   #SG_PM,%d0
-        bsr     sg_hl
-        lea     sg_b2,%a1
-        move.w  #0x4d00,(%a1)           | "M" (its width; then flashing, build 101)
-        lea     SG_SMALL,%a0
-        bsr     sg_wid
-        move.l  (%sp),%d1
-        subq.l  #6,%d1
-        sub.l   %d0,%d1
+        moveq   #SG_PM,%d0              | (181, STEPS: the row at x 24, M in the flag column at x 39; the
+        bsr     sg_hl                   | play triangle gone)
+        move.l  %d2,-(%sp)
+        bsr     sg_arr
         move.l  %d1,-(%sp)
-        bsr     sg_mch
+        pea     sg_f3r
+        pea     sg_b4
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        lea     SG_SMALL,%a0
+        moveq   #SG_RCX,%d0
+        moveq   #50,%d1
+        moveq   #0,%d2
+        lea     sg_b4,%a1
+        bsr     sg_tx
+        bsr     sg_mch                  | "M" (flashing while a track is muted, build 101)
         lea     sg_b2,%a1
         move.w  %d0,(%a1)
-        move.l  (%sp)+,%d0
+        move.l  (%sp)+,%d2
         lea     SG_SMALL,%a0
+        moveq   #SG_FCX+1,%d0
         moveq   #50,%d1
         lea     sg_b2,%a1
         bsr     sg_tx
@@ -5841,6 +5850,8 @@ sg_panel:
         or.l    %d1,%d0
 1:      move.l  %d0,%d6                 | d6: bank << 4 | pattern
         bsr     sg_tl2set               | the timeline: the next row's name may carry it (build 90)
+        tst.l   sg_tl2                  | (181, STEPS: no line 2; the rows' lines have it all)
+        bne     .Lsg_l2x
         moveq   #2,%d0
         cmp.l   sg_tl2,%d0
         beq     .Lsg_l2x
@@ -6153,6 +6164,8 @@ sg_panel:
 | page's descriptor and formatter (FUN_40031da4(track, slot / 6) + 0x16, + 0xca), cut at x 34 (the
 | pattern cues right of it). sg_panel's frame. Uses d0-d7 a0-a5.
 .Lsg_paud:
+        bsr     sg_tlon                 | (181: STEPS shows no step's trig)
+        bne     .Lsg_pend
         bsr     sg_sel                  | a1 the record, a2 the step's 32 locks, d0 the step
         movea.l %a2,%a5                 | a5: the locks
         move.l  %d0,%d1
@@ -8522,55 +8535,65 @@ sg_tnames:
         move.l  %d5,%d0
         lsl.l   #3,%d0
         adda.l  %d0,%a0
-        move.l  (%a0),%d4               | d4: the row's top (SAVE at the panel's left since build 100:
-2:      move.l  4(%a0),%d0              | no name left out for it)
+        move.l  (%a0),%d4               | d4: the row's top
+        moveq   #16,%d0                 | (181: line 1's row is sg_panel's)
+        cmp.l   %d0,%d4
+        blt     4f
+        move.l  4(%a0),%d3              | d3: row << 8 | bank << 4 | pattern
+        move.l  %d3,-(%sp)
+        move.l  %d4,%d1                 | its cells cleared: x 23 .. 57 (the lines come back, sg_stcol)
+        subq.l  #1,%d1
+        moveq   #SG_RCX-1,%d0
+        moveq   #57,%d2
+        move.l  %d4,%d3
+        addq.l  #3,%d3
+        bsr     sg_clr
+        move.l  (%sp),%d0               | the row, "001", at x 24
+        lsr.l   #8,%d0
+        move.l  %d0,-(%sp)
+        pea     sg_f3r
+        pea     sg_b4
+        jsr     SG_SPRINTF
+        lea     12(%sp),%sp
+        lea     SG_SMALL,%a0
+        moveq   #SG_RCX,%d0
+        moveq   #60,%d1
+        sub.l   %d4,%d1
+        moveq   #0,%d2
+        lea     sg_b4,%a1
+        bsr     sg_tx
+        move.l  (%sp),%d0               | the flag column: the infinity before a LOOP row, H before HALT
+        lsr.l   #8,%d0
+        bsr     sg_rflag
+        subq.l  #1,%d0
+        bmi.s   2f
+        bne.s   3f
+        moveq   #SG_FCX,%d0
+        move.l  %d4,%d1
+        bsr     sg_inf5
+        bra.s   2f
+3:      lea     sg_b2,%a1
+        move.w  #0x4800,(%a1)           | "H"
+        lea     SG_SMALL,%a0
+        moveq   #SG_FCX+1,%d0
+        moveq   #60,%d1
+        sub.l   %d4,%d1
+        moveq   #0,%d2
+        bsr     sg_tx
+2:      move.l  (%sp)+,%d0              | the pattern, "A03", against the divider
         moveq   #15,%d1
         and.l   %d0,%d1
         addq.l  #1,%d1
-        move.l  %d1,-(%sp)              | the pattern 1-16
+        move.l  %d1,-(%sp)
         lsr.l   #4,%d0
         moveq   #15,%d1
         and.l   %d1,%d0
         addi.l  #65,%d0
-        move.l  %d0,-(%sp)              | its bank's letter
-        cmp.l   sg_tqx,%d5
-        beq.s   5f
-        pea     sg_fpt                  | "A03"
-        bra.s   6f
-5:      move.l  sg_tqs,%d0              | the next row's: "-- A02" stopped, "3 A02" the bars to come
-        bpl.s   7f
-        pea     sg_fcs
-6:      pea     sg_b1
-        jsr     SG_SPRINTF
-        lea     16(%sp),%sp
-        bra.s   8f
-7:      moveq   #15,%d1                 | (the steps in bars, rounded up, 999 at most)
-        add.l   %d1,%d0
-        asr.l   #4,%d0
-        move.l  #999,%d1
-        cmp.l   %d1,%d0
-        ble.s   6f
-        move.l  %d1,%d0
-6:      move.l  %d0,-(%sp)
-        pea     sg_fcd
+        move.l  %d0,-(%sp)
+        pea     sg_fpt
         pea     sg_b1
         jsr     SG_SPRINTF
-        lea     20(%sp),%sp
-8:      lea     SG_SMALL,%a0
-        lea     sg_b1,%a1
-        bsr     sg_wid
-        moveq   #57,%d3
-        sub.l   %d0,%d3                 | d3: its x
-        move.l  %d3,%d0                 | its cell cleared: x - 1 .. 57, the glyph's rows and one round
-        subq.l  #1,%d0
-        move.l  %d4,%d1
-        subq.l  #2,%d1
-        moveq   #57,%d2
-        move.l  %d4,-(%sp)
-        move.l  sg_rh,%d3
-        add.l   %d4,%d3
-        bsr     sg_clr
-        move.l  (%sp)+,%d4
+        lea     16(%sp),%sp
         lea     SG_SMALL,%a0
         lea     sg_b1,%a1
         bsr     sg_wid
@@ -8597,6 +8620,132 @@ sg_tnames:
 9:      movem.l (%sp),%d2-%d5
         lea     16(%sp),%sp
         rts
+
+| (181, Zach) STEPS' left column: ROW (x 24), a 5-px flag column (x 38-42: M, the infinity, H), PAT
+| (against the divider); the heads on the top line, a dotted rule under them and over each row's line
+| (the grid's), dotted lines between the columns. Only in the arranger's timeline (sg_tlon). The
+| countdown before the next row and the clock are gone. Uses d0 d1 a0 a1.
+        .set    SG_RCX, 24
+        .set    SG_FCX, 38
+sg_stcol:
+        bsr     sg_tlon
+        beq     9f
+        lea     -20(%sp),%sp
+        movem.l %d2-%d6,(%sp)
+        tst.l   sg_umt                  | (an undo's message has the top line)
+        bgt.s   1f
+        lea     SG_SMALL,%a0
+        moveq   #SG_RCX,%d0
+        moveq   #57,%d1
+        moveq   #0,%d2
+        lea     sg_fwr,%a1              | "ROW"
+        bsr     sg_tx
+        lea     SG_SMALL,%a0
+        moveq   #46,%d0
+        moveq   #57,%d1
+        moveq   #0,%d2
+        lea     sg_fhpt,%a1             | "PAT"
+        bsr     sg_tx
+1:      moveq   #SG_RCX,%d0             | the rule under the heads
+        moveq   #8,%d1
+        moveq   #2,%d2
+        moveq   #0,%d3
+        moveq   #17,%d4
+        bsr     sg_lkdot
+        moveq   #SG_FCX-2,%d0           | the columns' lines
+        moveq   #9,%d1
+        moveq   #0,%d2
+        moveq   #2,%d3
+        moveq   #28,%d4
+        bsr     sg_lkdot
+        moveq   #SG_FCX+6,%d0
+        moveq   #9,%d1
+        moveq   #0,%d2
+        moveq   #2,%d3
+        moveq   #28,%d4
+        bsr     sg_lkdot
+        moveq   #0,%d5                  | over each row's line
+2:      cmp.l   sg_tnc,%d5
+        bge.s   8f
+        lea     sg_tnl,%a0
+        move.l  %d5,%d0
+        lsl.l   #3,%d0
+        move.l  (0,%a0,%d0.l),%d1
+        subq.l  #2,%d1
+        moveq   #14,%d0
+        cmp.l   %d0,%d1
+        blt.s   3f
+        moveq   #SG_RCX,%d0
+        moveq   #2,%d2
+        moveq   #0,%d3
+        moveq   #17,%d4
+        bsr     sg_lkdot
+3:      addq.l  #1,%d5
+        bra.s   2b
+8:      movem.l (%sp),%d2-%d6
+        lea     20(%sp),%sp
+9:      rts
+
+| d0 = an arrangement row: d0 = 1 when the next row (past REM rows) LOOPs back, 2 when it HALTs (a
+| LOOP / JUMP row whose target, +3, is itself; 0x40049504's reading), else 0. Uses d0 d1 a0 a1.
+sg_rflag:
+        move.l  %d2,-(%sp)
+        movea.l 0x10000000,%a0
+        moveq   #0,%d2
+        move.w  18(%a0),%d2             | the row count
+1:      addq.l  #1,%d0
+        cmp.l   %d2,%d0
+        bge.s   8f
+        moveq   #22,%d1
+        muls.l  %d0,%d1
+        lea     20(%a0,%d1.l),%a1
+        moveq   #0,%d1
+        move.b  (%a1),%d1
+        cmpi.l  #2,%d1                  | a REM row: past it
+        beq.s   1b
+        cmpi.l  #1,%d1
+        bne.s   8f
+        moveq   #0,%d1
+        move.b  3(%a1),%d1
+        cmp.l   %d0,%d1
+        beq.s   2f
+        blt.s   3f
+8:      moveq   #0,%d0
+        bra.s   9f
+2:      moveq   #2,%d0
+        bra.s   9f
+3:      moveq   #1,%d0
+9:      move.l  (%sp)+,%d2
+        rts
+
+| The infinity in 5 x 3 px from x d0, its rows d1 .. d1 + 2 (screen rows). Uses d0 d1 a0 a1.
+sg_inf5:
+        lea     -16(%sp),%sp
+        movem.l %d2-%d5,(%sp)
+        move.l  %d0,%d4
+        move.l  %d1,%d5
+        lea     sg_i5,%a1
+1:      move.b  (%a1)+,%d0
+        bmi.s   9f
+        ext.w   %d0
+        ext.l   %d0
+        move.b  (%a1)+,%d1
+        ext.w   %d1
+        ext.l   %d1
+        add.l   %d4,%d0
+        add.l   %d5,%d1
+        move.l  %d0,%d2
+        move.l  %d1,%d3
+        move.l  %a1,-(%sp)
+        lea     SG_FILL,%a0
+        bsr     sg_r1
+        movea.l (%sp)+,%a1
+        bra.s   1b
+9:      movem.l (%sp),%d2-%d5
+        lea     16(%sp),%sp
+        rts
+sg_i5:  .byte   1,0, 3,0, 0,1, 2,1, 4,1, 1,2, 3,2, -1
+        .balign 2
 
 | Line 2 in the timeline (build 90, from sg_panel after sg_queue: d5 its steps, d7 1 = this row
 | repeats): sg_tqx = the noted name (sg_tnl) whose row is the next row (sg_nrow, which sg_queue's sg_nxt
@@ -9973,6 +10122,7 @@ sg_lkcol:
         move.l  %d3,%d1
         subq.l  #1,%d1
         move.l  4(%sp),%d0
+        addq.l  #1,%d0                  | (180: a pixel clear of the divider)
         move.l  %d0,%d2
         addq.l  #1,%d2
         lea     SG_FILL,%a0
@@ -10178,11 +10328,11 @@ sg_lkfull:
         subq.l  #1,%d0
         bne.s   7b
         clr.b   (%a1)
-6:      moveq   #17,%d0
+6:      moveq   #16,%d0                 | (180: a pixel right, the lock's dot clear of the divider)
         bsr     sg_lkcut
         move.l  (%sp)+,%d2
         move.l  %d3,%d0
-        addq.l  #3,%d0
+        addq.l  #4,%d0
         move.l  sg_lkyl,%d1
         lea     SG_SMALL,%a0
         lea     sg_b3,%a1
@@ -10221,6 +10371,7 @@ sg_lkfull:
         move.l  %d3,%d1
         subq.l  #1,%d1
         move.l  4(%sp),%d0
+        addq.l  #1,%d0                  | (180: a pixel clear of the divider)
         move.l  %d0,%d2
         addq.l  #1,%d2
         lea     SG_FILL,%a0
@@ -11622,7 +11773,7 @@ sg_amode:
         tst.l   sg_own
         beq.s   7f
         move.l  sg_row,%d0
-        bsr     sg_tsel
+        jsr     sg_tsel
 7:      tst.l   0x80000012
         beq.s   9f
         clr.l   sg_aud
@@ -15889,6 +16040,8 @@ sg_np:  .long   0                       | the next arrangement row's pattern (0 
 sg_npn: .long   0                       | its byte: bank << 4 | pattern
 sg_nlay: .long  0                       | 1: the 4-page window's arrangement layout
 sg_frw: .asciz  "ROW %02d"
+sg_f3r: .asciz  "%03d"
+sg_fhpt: .asciz "PAT"
 sg_fsv: .asciz  "SAVE"
 sg_fck: .asciz  "%02d:%02d"
 sg_fcx:  .asciz  "OTHER SIDE"
@@ -16196,6 +16349,7 @@ sg_b1:  .space  24
 sg_b2:  .space  16
 sg_nb:  .space  32                     | the four notes: name at +0, octave at +4, 8 bytes each
 sg_b3:  .space  16
+sg_b4:  .space  16
 sg_lbl: .space  4                       | "L" (build 90)
 sg_pvb: .space  8                       | the panel's VEL value, formatted (build 90; the step's window)
 sg_plf: .space  12                      | its LEN fraction ("-5/8") and value

@@ -181,13 +181,14 @@ S-/- no scenes.*
 **MIDI** leaves, to the MIDI page.
 
 ![Pitch, ROLL 16](docs/screens/pitch-roll16.png)
-*ROLL 16: one page of 16 steps, a keyboard on the left.*
+*ROLL 16: a melody on MIDI track 1, one page of 16 steps, the keyboard on the left. The arrows at the
+top are notes above the screen.*
 
 ![Pitch, ROLL 32](docs/screens/pitch-roll32.png)
-*ROLL 32: two pages across two octaves (encoder D).*
+*ROLL 32: the same melody, two pages across two octaves (encoder D).*
 
 ![Pitch, KEYS 16](docs/screens/pitch-keys16.png)
-*KEYS 16: steps run down the screen over a keyboard (encoder D again).*
+*KEYS 16: the same notes, steps running down the screen onto the keyboard (encoder D again).*
 
 - **Squares** are notes, the box is the cursor, dotted rows are the sharps. A small arrow is a note
   above or below the screen.

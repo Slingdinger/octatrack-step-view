@@ -1,4 +1,4 @@
-# OctaZach screen rules
+# STEP VIEW screen rules
 
 Rules Zach has set for every screen of the step view (TRKS, PAGES, PITCH, the timeline, windows,
 and any new screen). Read this before any change to what the screen draws. They apply at every zoom

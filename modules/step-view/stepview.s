@@ -255,7 +255,12 @@ sg_poll:
         tst.l   sg_step
         beq.s   .Lpl_t
 .Lpl_c: clr.l   sg_tnum
-.Lpl_t:
+.Lpl_t: tst.l   sg_tlcur                 | (a length: only in TRKS, 176)
+        beq.s   .Lpl_u
+        jsr     sg_tnv
+        beq.s   .Lpl_u
+        clr.l   sg_tlcur
+.Lpl_u:
         jsr     sg_fkb
         jsr     sg_lkfn                 | (the lock window: FUNC down or up redraws it, build 159)
         jsr     sg_utick
@@ -1753,7 +1758,8 @@ sg_mv:
         tst.l   sg_view                 | its own, sg_fwrow: its step playing's, stopped step 1), kept
         bne.s   .Lmv_7o                 | within the track
         bsr     sg_mvtr
-        bsr     sg_tsel
+        move.l  sg_row,%d0              | (176: the track -- sg_mvtr leaves the step in d0, and the stock's
+        bsr     sg_tsel                 | track went to the step's number since 169)
         bra     6f
 .Lmv_7o:
         move.l  sg_row,%d0              | the cursor's track, 0-7
@@ -1796,17 +1802,43 @@ sg_mv:
         bsr     sg_tupd
         bra     6f
 0:      tst.l   sg_full                 | the full view: along all 64, wrapping (build 92)
-        beq.s   0f
+        beq     0f
         bsr     sg_tnv                  | TRKS: the track number left of step 1 (build 143)
-        bne.s   .Lmv_w
-        tst.l   sg_tnum
+        bne     .Lmv_w
+        tst.l   sg_tlcur                 | (176, Zach) on the length: RIGHT wraps to the track number, LEFT
+        beq.s   .Lmv_t                  | back to the track's last step
+        clr.l   sg_tlcur
+        tst.l   %d1
+        bmi.s   .Lmv_le
+        moveq   #1,%d0
+        move.l  %d0,sg_tnum
+        clr.l   sg_step
+        bra     6f
+.Lmv_le: jsr    sg_tllast
+        move.l  %d0,sg_step
+        bra     6f
+.Lmv_t: tst.l   sg_tnum
         beq.s   .Lmv_l
-        tst.l   %d1                     | on the number: RIGHT back to step 1, LEFT nothing
-        bmi     6f
+        tst.l   %d1                     | on the number: RIGHT back to step 1, LEFT (176) wraps to the
+        bmi.s   .Lmv_tl                 | length (PER TRACK only: nothing in NORMAL)
         clr.l   sg_tnum
         bra     6f
+.Lmv_tl: jsr    sg_tlpt
+        beq     6f
+        clr.l   sg_tnum
+        moveq   #1,%d0
+        move.l  %d0,sg_tlcur
+        bra     6f
+.Lmv_r: jsr     sg_tlpt                  | (176) RIGHT from the track's last step: its length (PER TRACK)
+        beq.s   .Lmv_w
+        jsr     sg_tllast
+        cmp.l   sg_step,%d0
+        bne.s   .Lmv_w
+        moveq   #1,%d0
+        move.l  %d0,sg_tlcur
+        bra     6f
 .Lmv_l: tst.l   %d1
-        bpl.s   .Lmv_w
+        bpl.s   .Lmv_r
         tst.l   sg_step
         bne.s   .Lmv_w
         moveq   #1,%d0                  | LEFT from step 1: onto the track number
@@ -1899,6 +1931,8 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         cmp.l   8(%sp),%d0
         bne     7f                      | press only
         tst.l   sg_tnum                 | on the track number: nothing (build 143)
+        bne     7f
+        tst.l   sg_tlcur                 | (or a length, 176)
         bne     7f
         tst.l   sg_aud                  | AUDIO: the step's trig cycled (build 110); NO's "CLEAR? YES" up:
         beq.s   0f                      | the step cleared (build 116, as on a MIDI track)
@@ -2068,6 +2102,14 @@ sg_lvl:
         bne     8f
         tst.l   sg_win                  | our window up: its PAGES (build 82)
         bne     sg_wlvl
+        tst.l   sg_tlcur                 | (176) TRKS on a length: LEVEL changes it, FUNC + LEVEL by 4
+        beq.s   .Llv_tl
+        move.l  8(%sp),%d0
+        tst.l   SG_HELD+0x2d*24
+        beq.s   .Llv_t1
+        lsl.l   #2,%d0
+.Llv_t1: jmp    sg_tladd
+.Llv_tl:
         move.l  8(%sp),%d0              | the delta
         tst.l   SG_HELD+0x2d*24         | FUNC + LEVEL: pages, as FUNC + LEFT/RIGHT (build 55; the stock's
         beq     1f                      | main volume is not on this page)
@@ -6642,6 +6684,8 @@ sg_kcop:
         bne     9f
         tst.l   sg_tnum                 | on the track number: the whole track (build 143)
         bne     sg_ktrk
+        tst.l   sg_tlcur                 | on a length: nothing (176)
+        bne     9f
         tst.l   sg_aud                  | AUDIO: CLEAR the cursor's step only (sg_aclr, the audio track's
         beq.s   .Lkc_m                  | record; 141-142 cleared the MIDI track's step through sg_ndel),
         moveq   #1,%d1                  | COPY / PASTE nothing (build 110)
@@ -10988,8 +11032,11 @@ sg_fwrow:
 | full view only its first column (the steps repeat across it; the 8-track window counted from its
 | first step, sg_fwin; the 4-page window from step 1); elsewhere always (build 98). Uses d0 d1.
 sg_fcur1:
+        tst.l   sg_tlcur                 | (or on a length, 176)
+        bne.s   .Lfc_1
         tst.l   sg_tnum                 | (the cursor on the track number: none on the steps, build 143)
         beq.s   .Lfc_0
+.Lfc_1:
         moveq   #0,%d0
         rts
 .Lfc_0: tst.l   sg_full
@@ -11176,7 +11223,17 @@ sg_kmidi:
         lea     40(%sp),%sp             | 112; out of the view in 108-111, now a page key's)
         clr.l   sg_mode
         bra     sg_vflip
-3:      bsr     sg_mxin
+3:      moveq   #1,%d0                  | (176, Zach: the view opens on the active track -- its side,
+        tst.l   0x80000012              | AUDIO in audio mode, and its row, 0x100b14cc)
+        beq.s   .Lkm_e
+        moveq   #0,%d0
+.Lkm_e: move.l  %d0,sg_aud
+        moveq   #0,%d0
+        move.b  0x100b14cc,%d0
+        andi.l  #7,%d0
+        move.l  %d0,sg_row
+        bsr     sg_mxin
+        bsr     sg_alab
         movem.l (%sp),%d2-%d7/%a2-%a5
         lea     40(%sp),%sp
         bra     sg_now
@@ -13213,6 +13270,83 @@ sg_tnv:
 9:      tst.l   %d0
         rts
 
+| (176) a2 = the pattern the cursor edits (the timeline's row's, sg_cpat, or the bank's current). Uses a2.
+sg_tpat:
+        move.l  %d0,-(%sp)
+        move.l  sg_cpat,%d0
+        beq.s   1f
+        movea.l %d0,%a2
+        bra.s   2f
+1:      movea.l 0x46c82456,%a2
+        moveq   #0,%d0
+        move.b  0x100b14d0,%d0
+        mulu.w  #0x8ed8,%d0
+        adda.l  %d0,%a2
+2:      move.l  (%sp)+,%d0
+        rts
+
+| (176) Z clear when that pattern's scale is PER TRACK (+0x8e55). Keeps everything.
+sg_tlpt:
+        lea     -8(%sp),%sp
+        movem.l %d0/%a2,(%sp)
+        bsr     sg_tpat
+        adda.l  #0x8e55,%a2
+        moveq   #0,%d0
+        move.b  (%a2),%d0
+        movem.l (%sp),%d0/%a2           | (flags kept: movem does not set them)
+        lea     8(%sp),%sp
+        rts
+
+| (176) d0 = the cursor's track's last step (its length - 1, sg_trk). Keeps everything else.
+sg_tllast:
+        lea     -20(%sp),%sp
+        movem.l %d1/%d5-%d6/%a2-%a3,(%sp)
+        bsr     sg_tpat
+        move.l  sg_row,%d1
+        bsr     sg_trk
+        move.l  %d6,%d0
+        subq.l  #1,%d0
+        movem.l (%sp),%d1/%d5-%d6/%a2-%a3
+        lea     20(%sp),%sp
+        rts
+
+| (176, Zach) LEVEL on TRKS' length (d0 the delta): the cursor's track's LEN (PER TRACK only), 2-64,
+| written as the scale window writes it (bank + CS1 copy, sg_sref's refresh). Then the redraw.
+sg_tladd:
+        lea     -16(%sp),%sp
+        movem.l %d2-%d3/%a2-%a3,(%sp)
+        move.l  %d0,%d2
+        clr.l   sg_idle
+        bsr     sg_cedit
+        bne.s   9f
+        bsr     sg_tlpt
+        beq.s   9f
+        bsr     sg_tpat
+        move.l  sg_row,%d0
+        bsr     sg_sto
+        move.l  %d0,%d3
+        move.b  (0,%a2,%d3.l),%d0
+        extb.l  %d0
+        add.l   %d2,%d0
+        moveq   #2,%d1
+        cmp.l   %d1,%d0
+        bge.s   1f
+        move.l  %d1,%d0
+1:      moveq   #64,%d1
+        cmp.l   %d1,%d0
+        ble.s   2f
+        move.l  %d1,%d0
+2:      lea     (0,%a2,%d3.l),%a0
+        move.b  %d0,(%a0)
+        movea.l %a0,%a1
+        suba.l  0x46c82456,%a1
+        adda.l  #0x1001614e,%a1
+        move.b  %d0,(%a1)
+        bsr     sg_sref
+9:      movem.l (%sp),%d2-%d3/%a2-%a3
+        lea     16(%sp),%sp
+        bra     sg_now
+
 | FUNC + REC / PLAY / STOP with the cursor on a track number (TRKS; sg_kcop, d0 the key: 0 COPY, 1
 | CLEAR, 2 PASTE; build 143): the whole track. COPY its 64 steps (a PAGES clip of all four pages) and
 | its LEN and SCALE; CLEAR its 64 steps; PASTE a track's clip onto it, the pages where they were and its
@@ -13609,7 +13743,9 @@ sg_pled:
 3:      rts
 
 | The page keys' LEDs on the lock column (build 170): in the lock window and Pages' panel cursor
-| (sg_lkc), and MIDI Pages' panel (sg_mpc), the key of the column lit -- 0x460ba9a5 / 0x460ba9a7:
+| (sg_lkc), and MIDI Pages' panel (sg_mpc), the key of the column lit -- LED rows 8 / 10 of the layer
+| 0x460ba98c + row (the panel gets it XOR 0x460ba9ae; 176: 170-175 wrote 0x460ba9a5 / a7, a copy
+| the panel link never reads -- measured with PanelLink under the port):
 | SRC 0x04, AMP 0x10 (byte 0), LFO 0x40, FX1 0x01, FX2 0x04 (byte 2), the bit above each the second
 | colour (MIDI lights both, as the stock's ARP page). The stock's bits kept (sg_pgls) and put back
 | when neither shows (sg_pgldx). Measured under the port (stock page keys, 170). Uses d0 d1 a0.
@@ -13633,9 +13769,9 @@ sg_pgled:
         tst.l   sg_pgon
         bne.s   3f
         moveq   #0,%d1                  | the stock's, kept once
-        move.b  0x460ba9a5,%d1
+        move.b  0x460ba994,%d1
         move.l  %d1,sg_pgls
-        move.b  0x460ba9a7,%d1
+        move.b  0x460ba996,%d1
         move.l  %d1,sg_pgls+4
         moveq   #1,%d1
         move.l  %d1,sg_pgon
@@ -13650,19 +13786,19 @@ sg_pgled:
 4:      move.b  1(%a0,%d0.l*2),%d0      | its byte: 0 / 2
         move.l  %d0,-(%sp)
         moveq   #0,%d0
-        move.b  0x460ba9a5,%d0
+        move.b  0x460ba994,%d0
         andi.l  #0xc3,%d0
         tst.b   3(%sp)
         bne.s   5f
         or.l    %d1,%d0
-5:      move.b  %d0,0x460ba9a5
+5:      move.b  %d0,0x460ba994
         moveq   #0,%d0
-        move.b  0x460ba9a7,%d0
+        move.b  0x460ba996,%d0
         andi.l  #0x30,%d0
         tst.b   3(%sp)
         beq.s   6f
         or.l    %d1,%d0
-6:      move.b  %d0,0x460ba9a7
+6:      move.b  %d0,0x460ba996
         addq.l  #4,%sp
         bra.s   sg_pgtell
 
@@ -13672,22 +13808,22 @@ sg_pgldx:
         beq.s   9f
         clr.l   sg_pgon
         moveq   #0,%d0
-        move.b  0x460ba9a5,%d0
+        move.b  0x460ba994,%d0
         andi.l  #0xc3,%d0
         move.l  sg_pgls,%d1
         andi.l  #0x3c,%d1
         or.l    %d1,%d0
-        move.b  %d0,0x460ba9a5
+        move.b  %d0,0x460ba994
         moveq   #0,%d0
-        move.b  0x460ba9a7,%d0
+        move.b  0x460ba996,%d0
         andi.l  #0x30,%d0
         move.l  sg_pgls+4,%d1
         andi.l  #0xcf,%d1
         or.l    %d1,%d0
-        move.b  %d0,0x460ba9a7
+        move.b  %d0,0x460ba996
 sg_pgtell:
-        move.b  0x460ba9a5,%d0          | told only on a change
-        move.b  0x460ba9a7,%d1
+        move.b  0x460ba994,%d0          | told only on a change
+        move.b  0x460ba996,%d1
         cmp.b   sg_pgsn,%d0
         bne.s   1f
         cmp.b   sg_pgsn+1,%d1
@@ -15070,7 +15206,14 @@ sg_fhdt:
         move.l  %d7,%d0
         mulu.w  #7,%d0
         sub.l   %d0,%d5
-        bsr     sg_fhrt
+        clr.l   sg_fhinv                | (the cursor's track's, the cursor on it: inverted, 176)
+        tst.l   sg_tlcur
+        beq.s   2f
+        cmp.l   sg_row,%d7
+        bne.s   2f
+        moveq   #1,%d0
+        move.l  %d0,sg_fhinv
+2:      bsr     sg_fhrt
         addq.l  #1,%d7
         moveq   #8,%d0
         cmp.l   %d0,%d7
@@ -15129,8 +15272,11 @@ sg_fhrt:                                | sg_b1 right-aligned to x 127 at y d5 (
         bsr     sg_wid
         move.l  #127,%d4
         sub.l   %d0,%d4
-        move.l  %d4,%d0
-        subq.l  #1,%d0
+        tst.l   sg_fhinv                | (inverted: 2 px in, its box on the screen, 176)
+        beq.s   0f
+        subq.l  #2,%d4
+0:      move.l  %d4,%d0
+        subq.l  #2,%d0
         moveq   #57,%d1                 | (rows 63 - y - 6 .. 63 - y)
         sub.l   %d5,%d1
         move.l  %d1,%d3
@@ -15140,7 +15286,8 @@ sg_fhrt:                                | sg_b1 right-aligned to x 127 at y d5 (
         lea     SG_SMALL,%a0
         move.l  %d4,%d0
         move.l  %d5,%d1
-        moveq   #0,%d2
+        move.l  sg_fhinv,%d2            | (inverted: TRKS' length under the cursor, 176)
+        clr.l   sg_fhinv
         lea     sg_b1,%a1
         bsr     sg_tx
         rts
@@ -15486,7 +15633,7 @@ sg_snum: .long  0                       | 1: the row's number picked, LEFT of it
 sg_sela: .long  -1                      | the run marked: its anchor step, -1 none (FUNC + LEVEL)
 sg_win: .long   0                       | our window: 0 none, 1 COPY, 2 CLEAR
 sg_pgon: .long  0                       | the page keys' LEDs ours (build 170)
-sg_pgls: .long  0,0                     | the stock's bytes 0x460ba9a5 / a7
+sg_pgls: .long  0,0                     | the stock's bytes 0x460ba994 / 96 (LED rows 8 / 10)
 sg_pgsn: .long  0                       | the bytes last told
 sg_pgbt: .byte  0x04,0, 0x10,0, 0x40,2, 0x01,2, 0x04,2
         .even
@@ -15724,6 +15871,8 @@ sg_fpc: .long   -1                      | the full view's play column, the row's
 sg_tpo: .long   0                       | the page playing's place in the timeline's first screen row (93)
 sg_half: .long  0                       | 1: drawing a track's second line (build 93)
 sg_gx:  .long   SG_GX                   | the grid's first column (sg_zset)
+sg_tlcur: .long 0                        | 1: the cursor on a track's length in TRKS (176)
+sg_fhinv: .long 0                       | sg_fhrt: the number inverted
 sg_tnum: .long 0                        | 1: the cursor on the track number in TRKS (build 143)
 sg_ctrk: .long 0                        | 1: the clip is a whole track's (sg_ktrk), its LEN and SCALE:
 sg_ctl:  .long 0

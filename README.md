@@ -38,7 +38,7 @@ Octatrack OS (1.40C, MKI and MKII).
 
 | Action | Result |
 |---|---|
-| Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page. |
+| Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page, on the active track: the audio tracks in audio mode, the MIDI tracks in MIDI mode. |
 | Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Split →** back to Tracks. |
 | Press **MIDI** alone | Switch between the 8 audio tracks and the 8 MIDI tracks. |
 | **Arrows** | Move the cursor. |
@@ -115,6 +115,15 @@ How to read it:
 short tracks keep looping in place.*
 
 A pattern coming up shows as A03>>A04, with the bars left swapping in for the >> on the flash.
+
+**Track lengths.** With the pattern's SCALE set to PER TRACK, press RIGHT on a track's last step and
+the cursor moves onto its length at the right end of the row. **LEVEL** changes it (2 to 64),
+**FUNC + LEVEL** by 4, and **UP / DOWN** move to the other tracks' lengths. **RIGHT** there wraps to
+the track number, and **LEFT** on the track number wraps back to the length. With SCALE on NORMAL the
+pattern's length is left alone: change it in the Octatrack's SCALE menu.
+
+![Tracks, the cursor on a length](docs/screens/tracks-length.png)
+*Audio track 5's length (16) picked: LEVEL changes it.*
 
 **Whole tracks.** Press LEFT on step 1 and the cursor moves onto the track number, which flashes.
 There, **FUNC + REC** copies the whole track (all 64 steps, their locks, the length and scale),

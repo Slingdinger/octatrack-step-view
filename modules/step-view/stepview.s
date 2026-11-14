@@ -3499,6 +3499,9 @@ sg_run:
         sub.l   %d1,%d0
         lsr.l   #4,%d0
         add.l   #49,%d0
+        moveq   #SG_GX,%d1              | (189, Zach: not in STEPS, its grid from x 32 -- x 60 is in it)
+        cmp.l   sg_gx,%d1
+        bne     3f
         bsr     sg_tmut                 | the cursor's track muted in the row: M, blinking (build 75; the
         beq     3f                      | row's own mutes, build 81); no page number (build 154, Zach)
         moveq   #32,%d1                 | (bit 5, build 76)

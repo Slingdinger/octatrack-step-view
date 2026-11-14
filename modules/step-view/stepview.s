@@ -1410,6 +1410,17 @@ sg_trn:
         pea     0x2a.w                  | displaced
         jmp     0x40037234
 
+| (188, Zach) Detour 0x4005222e (10 bytes: `jsr 0x4004bd48` ; `jsr 0x4003fed8`), the periodic handler's
+| two track-strip drawers (the boxes, the entries: a muted track's M flashing at x 0-8 / 119-127): not
+| while the view is up, which owns the whole screen (leaving it makes their caches stale, sg_rest).
+        .global sg_strp
+sg_strp:
+        tst.l   sg_own
+        bne.s   1f
+        jsr     0x4004bd48
+        jsr     0x4003fed8
+1:      jmp     0x40052238
+
 | Detour 0x4004c0a8 (8 bytes: `linkw %fp,#-144` ; `moveml %d2-%d3/%a2-%a5,%sp@`), the info box's drawer
 | (the part, the MIDI channel), run by the main view and by a soft timer (0x40031a0c(5, it)).
 sg_info:

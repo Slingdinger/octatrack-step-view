@@ -85,6 +85,8 @@ MODULE = Module(
                "the pattern field's drawer: returns on the MIDI ARP page", pad_to=8),
         Detour(0x4004b08c, H("4e56ffe048d7040c"), "stepview", "sg_tmp",
                "the tempo's drawer (EXT blinks through it with an external clock): returns on the MIDI ARP page", pad_to=8),
+        Detour(0x4005222e, H("4eba9b184eb94003fed8"), "stepview", "sg_strp",
+               "the periodic handler's track-strip drawers: not while the view is up (188)", pad_to=10),
         Detour(0x4003722c, H("2f0a42a74878002a"), "stepview", "sg_trn",
                "the transport icon's drawer: returns on the MIDI ARP page", pad_to=8),
         Detour(0x40032280, H("2279400cfeda"), "stepview", "sg_vtog",

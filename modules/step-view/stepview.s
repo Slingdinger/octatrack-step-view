@@ -3,7 +3,7 @@
 
         .text
         .global sg_page, sg_poll, sg_info, sg_ptn, sg_beat
-        .global sg_pkey, sg_kscale, sg_kcopy, sg_kclear, sg_kpaste, sg_kfscale, sg_kenc, sg_kptrig, sg_kfarp
+        .global sg_pkey, sg_trkk, sg_kscale, sg_kcopy, sg_kclear, sg_kpaste, sg_kfscale, sg_kenc, sg_kptrig, sg_kfarp
         .global sg_klr, sg_kud, sg_kyes, sg_kno, sg_lvl, sg_tmp, sg_trn, sg_kfl, sg_vtog, sg_kfud, sg_lvlh, sg_kundo
 
 | ---- STEP VIEW: the MIDI ARP page is a step editor for the 8 MIDI tracks.
@@ -1145,8 +1145,10 @@ sg_vflip:
         moveq   #1,%d0                  | TRKS -> PAGES
         move.l  %d0,sg_view
         bra.s   .Lvf_n
-.Lvf_p: tst.l   sg_aud
+.Lvf_p: bra.s   .Lvf_q                  | (184: PITCH is a MIDI track key's double press, sg_trkk)
+        tst.l   sg_aud
         beq.s   .Lvf_h
+.Lvf_q:
         .if     SG_SPL
         clr.l   sg_full                 | AUDIO: PAGES -> the panel view (build 158; TRKS before)
         bsr     sg_vwset
@@ -1321,6 +1323,49 @@ sg_pkdb:
         move.l  %d1,sg_pklt
         moveq   #0,%d1
         rts
+
+| (184, Zach) The track keys' records (both keymaps; stock 0x40040250(code, state), the double-press
+| test: the same key again within 14 ticks of 0x460d5de0 makes the press state 3): in MIDI mode a
+| double press opens the view's PITCH on that track (from anywhere; in the view too). Else the stock's.
+sg_trkk:
+        moveq   #1,%d0
+        cmp.l   8(%sp),%d0
+        bne     8f
+        tst.l   0x80000012
+        beq     8f
+        move.l  4(%sp),%d0
+        cmp.l   0x400c0aac,%d0
+        bne     8f
+        moveq   #14,%d1
+        cmp.l   0x460d5de0,%d1
+        blt.s   8f
+        moveq   #-1,%d1                 | (a third press starts again, as the stock's)
+        move.l  %d1,0x400c0aac
+        clr.l   0x460d5de0
+        lea     -40(%sp),%sp
+        movem.l %d2-%d7/%a2-%a5,(%sp)
+        subi.l  #0x10,%d0
+        andi.l  #7,%d0
+        move.l  %d0,sg_row
+        tst.l   sg_own
+        bne.s   1f
+        clr.l   sg_aud
+        jsr     sg_mxin
+1:      clr.l   sg_win
+        moveq   #1,%d0
+        move.l  %d0,sg_full
+        move.l  %d0,sg_view
+        move.l  %d0,sg_pv
+        clr.l   sg_mode
+        moveq   #-1,%d0
+        move.l  %d0,sg_zlst
+        jsr     sg_zset
+        jsr     sg_alab
+        clr.l   sg_idle
+        movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        jmp     sg_now
+8:      jmp     0x40040250
 
 | sg_pkey's (d0 = the key's column 0-4): FUNC held in the window on AUDIO's FX1 / FX2, with PLOCKS P2
 | in the remix -- that column's SETUP on / off (sg_lksu; build 173). Keeps everything.
@@ -7903,6 +7948,8 @@ sg_kfbank:
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne.s   8f
+        tst.l   0x400c0b74              | (184, Zach) the arranger's editor open: STEPS
+        bne     sg_arst
         tst.l   0x460d1aec              | the arranger off: the stock's (PATTERN SETTINGS)
         beq.s   8f
         tst.l   sg_abk                  | the second press, the menu still open: its YES
@@ -11672,7 +11719,14 @@ sg_kmidi:
         lea     40(%sp),%sp             | 112; out of the view in 108-111, now a page key's)
         clr.l   sg_mode
         bra     sg_vflip
-3:      moveq   #1,%d0                  | (176, Zach: the view opens on the active track -- its side,
+3:      tst.l   0x400c0b74              | (184, Zach: from the arranger's editor or the ARR menu: STEPS)
+        bne.s   .Lkm_s
+        tst.l   0x400c0af8
+        beq.s   .Lkm_o
+.Lkm_s: movem.l (%sp),%d2-%d7/%a2-%a5
+        lea     40(%sp),%sp
+        bra     sg_arst
+.Lkm_o: moveq   #1,%d0                  | (176, Zach: the view opens on the active track -- its side,
         tst.l   0x80000012              | AUDIO in audio mode, and its row, 0x100b14cc)
         beq.s   .Lkm_e
         moveq   #0,%d0
@@ -12419,7 +12473,7 @@ sg_pmv:
         and.l   %d0,sg_step
 6:      clr.l   sg_bk
         clr.l   sg_idle
-        bsr     sg_pgset
+        jsr     sg_pgset
         bra     sg_now
 
 | Knob D in ROLL 32 and KEYS 16 (build 136; it reached the hidden PAGES spacing before): the range a
@@ -16632,7 +16686,10 @@ sgn_st_partclear:                       | d0 = the Part: its eight names empty
 sg_arst:
         lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
-        jsr     0x40055ec0
+        tst.l   0x400c0b74              | (184: the arranger's editor open: closed, as its NO, 0x400565ac)
+        beq.s   0f
+        jsr     0x400565ac
+0:      jsr     0x40055ec0              | the ARR menu closed (it checks itself it is open)
         tst.l   sg_own
         bne.s   1f
         moveq   #1,%d0                  | the active track's side and row, as MIXER + MIDI

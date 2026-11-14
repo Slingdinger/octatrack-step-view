@@ -24,6 +24,13 @@ def u32(v):
 # The page keys' records' handler slots (stock 0x4005578c, both keymaps and the MIDI-mode maps; build 174):
 # the page keys go through sg_pkey, which ends at the stock handler -- a record each, not a detour on
 # 0x4005578c, so a module that detours that handler (DLPUMP's toast) chains after it.
+TKEY_SLOTS = (0x400bfc46, 0x400bfc4a, 0x400bfc4e, 0x400bfc60, 0x400bfc64, 0x400bfc68, 0x400bfc7a, 0x400bfc7e,
+              0x400bfc82, 0x400bfc94, 0x400bfc98, 0x400bfc9c, 0x400bfcae, 0x400bfcb2, 0x400bfcb6, 0x400bfcc8,
+              0x400bfccc, 0x400bfcd0, 0x400bfce2, 0x400bfce6, 0x400bfcea, 0x400bfcfc, 0x400bfd00, 0x400bfd04,
+              0x400c022a, 0x400c022e, 0x400c0232, 0x400c0244, 0x400c0248, 0x400c024c, 0x400c025e, 0x400c0262,
+              0x400c0266, 0x400c0278, 0x400c027c, 0x400c0280, 0x400c0292, 0x400c0296, 0x400c029a, 0x400c02ac,
+              0x400c02b0, 0x400c02b4, 0x400c02c6, 0x400c02ca, 0x400c02ce, 0x400c02e0, 0x400c02e4, 0x400c02e8)
+
 PKEY_SLOTS = (0x400bf38a, 0x400bf38e, 0x400bf3a4, 0x400bf3a8, 0x400bf3be, 0x400bf3c2, 0x400bf3d8, 0x400bf3dc,
               0x400bf3f2, 0x400bf3f6, 0x400bf6fe, 0x400bf702, 0x400bf718, 0x400bf71c, 0x400bf732, 0x400bf736,
               0x400bf74c, 0x400bf750, 0x400bf766, 0x400bf76a, 0x400bfd16, 0x400bfd1a, 0x400bfd1e, 0x400bfd30,
@@ -230,7 +237,8 @@ MODULE = Module(
         SymbolRef(0x400c07c4, 0x4005e25c, "stepview", "sg_kno", "MKII keymap, NO handler 1: the step editor's on the MIDI ARP page"),
         SymbolRef(0x40061e90, 0x40052200, "stepview", "sg_poll",
                   "the UI's periodic message: then the ARP page's steps again if they changed"),
-    ) + tuple(SymbolRef(a, 0x4005578c, "stepview", "sg_pkey", "a page key record's handler: in MIXER + MIDI's view a page key leaves the view first, then the stock's (build 174)") for a in PKEY_SLOTS),
+    ) + tuple(SymbolRef(a, 0x4005578c, "stepview", "sg_pkey", "a page key record's handler: in MIXER + MIDI's view a page key leaves the view first, then the stock's (build 174)") for a in PKEY_SLOTS)
+      + tuple(SymbolRef(a, 0x40040250, "stepview", "sg_trkk", "a track key record's handler: in MIDI mode a double press opens the view's PITCH on that track (184)") for a in TKEY_SLOTS),
     pokes=(
         Poke(0x400be7d6, bytes(8), b"STEPS\0\0\0",
              "ARR 1:'s eighth item's name (its empty slot): STEPS opens the view's arranger timeline (180)"),

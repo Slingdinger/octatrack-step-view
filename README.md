@@ -39,7 +39,9 @@ Octatrack OS (1.40C, MKI and MKII).
 | Action | Result |
 |---|---|
 | Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page, on the active track: the audio tracks in audio mode, the MIDI tracks in MIDI mode. |
-| Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch →** back to Tracks (audio: Tracks ↔ Pages). |
+| Press **MIXER + MIDI** again | The other view: **Tracks ↔ Pages**. |
+| In MIDI mode, press a **track key twice** | **Pitch** on that track, from anywhere. |
+| In the arranger's editor or ARR menu, **FUNC + BANK** or **MIXER + MIDI** | **STEPS**, the arranger's timeline. |
 | Press **MIDI** alone | Switch between the 8 audio tracks and the 8 MIDI tracks. |
 | **Arrows** | Move the cursor. |
 | **YES** | Open the step's [lock window](#the-lock-window): every p-lock on it (in Pages: the panel under the grid). On an empty MIDI step: a note, and the [note window](#the-note-window-midi). On an empty audio step: a trig. |
@@ -200,6 +202,9 @@ A countdown shows the bars left before the next row.
 
 ### 3. Pitch: a piano roll (MIDI)
 
+**Open it with a double press of a MIDI track's key**, in MIDI mode, from any page (in STEP VIEW too).
+MIXER + MIDI doesn't reach it. **NO** leaves it.
+
 The cursor's MIDI track as notes on a keyboard, for writing melodies and bass lines. **Press encoder D**
 to switch between three layouts. They all show the same notes and keep the same range. The arranger
 doesn't change this view.
@@ -243,7 +248,8 @@ Moving around:
 ### STEPS: the arranger's timeline
 
 With the arranger on, **FUNC + BANK** opens the ARR menu. Its eighth item, **STEPS**, opens this view.
-**NO** leaves it. MIXER + MIDI no longer reaches it: its cycle is Tracks, Pages and Pitch. Track names
+In the arranger's editor (or with the ARR menu open), **FUNC + BANK** or **MIXER + MIDI** opens it too.
+**NO** leaves it. MIXER + MIDI's own cycle is Tracks and Pages. Track names
 (below) can't be set while it's out of the cycle.
 
 
@@ -447,7 +453,7 @@ you left it, and so you can see or reset them.
 | **FULL ZOOM** | Steps per row in Tracks and Pages: 2 = 16, 3 = 32. |
 | **ZOOM** | Steps per row in the Split view's timeline: 0 = 4, 1 = 8, 2 = 16. |
 
-MIXER + MIDI always opens Tracks, Pages or Pitch, whichever you used last. FULL and ZOOM's Split
+MIXER + MIDI always opens Tracks or Pages, whichever you used last. FULL and ZOOM's Split
 values are kept for when Split comes back.
 
 ---

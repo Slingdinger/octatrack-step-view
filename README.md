@@ -254,7 +254,7 @@ In the arranger's editor (or with the ARR menu open), **FUNC + BANK** or **MIXER
 
 
 The screen split in two: the grid on the right, the arrangement's timeline; on the left, beside each
-row's start, three columns under ROW and PAT, with dotted lines between them:
+row's start, three columns under ROW and PAT:
 
 - **ROW**: the arrangement row.
 - The flag column: **M** on the row playing (YES opens its mutes), **∞** on a row followed by a LOOP,

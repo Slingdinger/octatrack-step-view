@@ -8715,18 +8715,7 @@ sg_stcol:
         moveq   #0,%d2
         lea     sg_fhpt,%a1             | "PAT"
         bsr     sg_tx
-1:      moveq   #SG_FCX-1,%d0           | the columns' lines, the whole height (183: no rule under the
-        moveq   #1,%d1                  | heads; 186: from the top, Zach)
-        moveq   #0,%d2
-        moveq   #2,%d3
-        moveq   #32,%d4
-        bsr     sg_lkdot
-        moveq   #SG_FCX+5,%d0
-        moveq   #1,%d1
-        moveq   #0,%d2
-        moveq   #2,%d3
-        moveq   #32,%d4
-        bsr     sg_lkdot
+1:                                      | (187, Zach: no lines between the columns)
                                         | (182: no line over each row's, Zach)
 8:      movem.l (%sp),%d2-%d6
         lea     20(%sp),%sp

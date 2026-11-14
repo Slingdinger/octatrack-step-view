@@ -19,11 +19,11 @@ Octatrack OS (1.40C, MKI and MKII).
 
 - [Quick start](#quick-start)
 - [Audio and MIDI](#audio-and-midi)
-- [The four views](#the-four-views)
+- [The views](#the-views)
   - [1. Tracks](#1-tracks-the-whole-pattern)
   - [2. Pages](#2-pages-one-track-all-64-steps)
   - [3. Pitch](#3-pitch-a-piano-roll-midi)
-  - [4. Split](#4-split-the-numbers-for-the-arranger)
+  - [Split (hidden for now)](#split-hidden-for-now)
 - [The lock window](#the-lock-window): every p-lock on a step
   - [The note window (MIDI)](#the-note-window-midi)
 - [Encoder D](#encoder-d-press-it-to-change-how-the-view-looks)
@@ -39,13 +39,13 @@ Octatrack OS (1.40C, MKI and MKII).
 | Action | Result |
 |---|---|
 | Hold **MIXER**, press **MIDI** | STEP VIEW opens, from any page, on the active track: the audio tracks in audio mode, the MIDI tracks in MIDI mode. |
-| Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch → Split →** back to Tracks. |
+| Press **MIXER + MIDI** again | The next view: **Tracks → Pages → Pitch →** back to Tracks (audio: Tracks ↔ Pages). |
 | Press **MIDI** alone | Switch between the 8 audio tracks and the 8 MIDI tracks. |
 | **Arrows** | Move the cursor. |
 | **YES** | Open the step's [lock window](#the-lock-window): every p-lock on it (in Pages: the panel under the grid). On an empty MIDI step: a note, and the [note window](#the-note-window-midi). On an empty audio step: a trig. |
 | **FUNC + PLAY** | Clear the step. |
 | **FUNC + NO** | Undo. **FUNC + YES** redoes. |
-| Press **encoder D** | Zoom in or out (Tracks, Pages, Split's timeline), or switch the piano-roll layout (Pitch). |
+| Press **encoder D** | Zoom in or out (Tracks, Pages), or switch the piano-roll layout (Pitch). |
 | **NO** | Back out: closes whatever is open, and from the grid, leaves STEP VIEW. |
 
 ---
@@ -58,7 +58,7 @@ except Pitch, which is for notes and so MIDI only.
 
 | | Audio tracks | MIDI tracks |
 |---|---|---|
-| **Tracks, Pages, Split** | ✓ | ✓ |
+| **Tracks, Pages** | ✓ | ✓ |
 | **Pitch** (piano roll) | | ✓ |
 | **Lock window** columns | PLAY AMP LFO FX1 FX2 | NOTE ARP LFO CTL1 CTL2 |
 
@@ -70,14 +70,13 @@ were on, in the mode you were in.
 
 ---
 
-## The four views
+## The views
 
 | View | What it shows | Use it for |
 |---|---|---|
 | **Tracks** | All 8 tracks at once, one row each. | Placing trigs fast and seeing the whole pattern. |
 | **Pages** | One track's 64 steps, its four pages stacked. With the arranger on, the arrangement in the order it plays. | Long tracks, and following an arrangement. |
 | **Pitch** | One MIDI track as a piano roll. | Writing melodies and bass lines. |
-| **Split** | The grid on the right, the cursor step's values and the pattern cues on the left. | Exact values, and running the arranger. |
 
 ### 1. Tracks: the whole pattern
 
@@ -167,7 +166,8 @@ more parameters (+3).*
 | **LEFT / RIGHT**, a **page key** | Pick a column. It widens. |
 | **UP / DOWN** | Pick a line. **DOWN** past the last goes to the column's name. **UP** off the first goes back to the grid. |
 | **YES** on a line | Edit it: **LEVEL** changes it. On MIDI's NOTE column, the [note window](#the-note-window-midi). |
-| **YES** on a column's name | The full [lock window](#the-lock-window) on that column. **NO** there comes back here. |
+| **YES** on a column's name, or its **page key twice** | The full [lock window](#the-lock-window) on that column. **NO** there comes back here. |
+| **FUNC + a page key** | That column's SETUP page, as in the [lock window](#setup-pages). |
 | Hold **FUNC** | The narrow columns show values. |
 | **NO** | Back to the grid. |
 
@@ -239,7 +239,12 @@ Moving around:
 - **Knob E** slides the keyboard up and down a semitone, and **FUNC + knob E** an octave.
 - **PATTERN + trig** and **BANK + trig** still pick patterns and banks as usual.
 
-### 4. Split: the numbers, for the arranger
+### Split (hidden for now)
+
+**This version hides Split: MIXER + MIDI no longer reaches it.** Its code is still there and will come
+back. While it's hidden, track names and the arrangement controls below can't be reached. What follows
+describes it as it was.
+
 
 The screen split in two: the grid on the right, and on the left a column with the cursor step's trig, the
 pattern cues (the pattern playing and the one coming, beside the grid) and the play clock at the bottom.
@@ -315,6 +320,7 @@ How to read it:
 | Action | Result |
 |---|---|
 | A **page key**, or **LEFT / RIGHT** | Pick a column. |
+| **FUNC + a page key** | That column's [SETUP page](#setup-pages). The same again goes back. |
 | **UP / DOWN** | Pick a parameter in the column. |
 | **YES** | Edit it: its value inverts, and **LEVEL** changes it (an unlocked one gets locked, starting from the Part's value). YES again or NO ends the edit. On a MIDI step's NOTE column, YES opens the [note window](#the-note-window-midi) instead. |
 | **FUNC + YES** | Switch the step between TRIG and TRIGLESS. Its locks stay. |
@@ -323,10 +329,17 @@ How to read it:
 | **Knobs A-F** (turned) | Nothing, so nothing gets locked by accident. |
 | **NO** | Close the window. |
 
-**FX SETUP locks (audio, with PLOCKS P2).** With octabam's PLOCKS P2 module in your build (see
-[Adding it to your build](#adding-it-to-your-build)), **FUNC + FX1** or **FUNC + FX2** turns that column
-into the effect's SETUP page (FX1S / FX2S at the foot). It works like the main page: the dot, the
-Part's value, YES and LEVEL to lock. FUNC + the key again goes back.
+### SETUP pages
+
+**FUNC + a page key** turns that column into the page's SETUP page, with an S at the foot (PLYS, AMPS,
+LFOS, FX1S, FX2S; on MIDI NOTS, ARPS, LFOS, CT1S, CT2S). **FUNC + the key** again goes back. It works
+in the lock window and in Pages' panel, on both sides.
+
+- **Shown, not locked.** The Octatrack can't p-lock SETUP values, so they show the Part's values and
+  YES does nothing. A machine without a SETUP page (THRU, NEIGHBOR) shows an empty column.
+- **FX SETUP locks (audio, with PLOCKS P2).** With octabam's PLOCKS P2 module in your build (see
+  [Adding it to your build](#adding-it-to-your-build)), FX1S and FX2S lock like the main page: the dot,
+  the Part's value, YES and LEVEL to lock.
 
 ![FX2 SETUP in the lock window](docs/screens/lock-window-setup.png)
 *FUNC + FX2: the delay's SETUP page. DIR locked to 120 on this step.*
@@ -358,7 +371,6 @@ lock values on that step as usual.
 | **Tracks** | Zoom: 16 ↔ 32 steps a row |
 | **Pages** | Zoom: 16 ↔ 32 steps a row |
 | **Pitch** | Next layout: ROLL 16 → ROLL 32 → KEYS 16 |
-| **Split** (arranger on) | Zoom the timeline: 4 → 8 → 16 steps a row |
 
 ---
 
@@ -399,7 +411,7 @@ In STEP VIEW, **FUNC + REC / PLAY / STOP** are **COPY / CLEAR / PASTE**:
 ### Track names (MIDI)
 
 Each MIDI track can have a 12-character name, per Part and bank. It shows in the grid's title in place
-of T1-T8. To set it in Split (arranger off), press LEFT at the grid's first step: the cursor lands on
+of T1-T8. (Hidden in this version, with [Split](#split-hidden-for-now).) To set it in Split (arranger off), press LEFT at the grid's first step: the cursor lands on
 the name. Hold **FUNC** for a
 keyboard of characters. Names are saved with the project.
 
@@ -425,8 +437,8 @@ you left it, and so you can see or reset them.
 | **FULL ZOOM** | Steps per row in Tracks and Pages: 2 = 16, 3 = 32. |
 | **ZOOM** | Steps per row in the Split view's timeline: 0 = 4, 1 = 8, 2 = 16. |
 
-MIXER + MIDI always opens Tracks, Pages or Pitch, whichever you used last. The Split view is one press
-of the combo further on.
+MIXER + MIDI always opens Tracks, Pages or Pitch, whichever you used last. FULL and ZOOM's Split
+values are kept for when Split comes back.
 
 ---
 
@@ -438,8 +450,8 @@ it.
 - **MIXER + MIDI to get in.** The Octatrack has no spare page key. STEP VIEW draws on top of the MIDI
   ARP page but only while it's open, so the arpeggiator stays fully usable. MIXER + MIDI works from
   any page and doesn't take a key away from anything.
-- **The same combo to switch views.** One gesture to remember. The cost is that the Split view is
-  four presses away.
+- **The same combo to switch views.** One gesture to remember. Split is hidden for now to keep the
+  cycle short.
 - **MIDI alone for the other side.** It's the key that already switches the Octatrack between its audio
   and MIDI tracks, so in STEP VIEW it does the same thing.
 - **NO to go back.** Everywhere else on the Octatrack NO means "back" or "cancel", so it does here
@@ -455,7 +467,7 @@ it.
   Every parameter is listed, so it's always in the same place; the column you're in widens to show
   values, and FUNC, the Octatrack's "show me more" key, shows the rest. Pages uses the same columns,
   four lines tall, so it shows the most-used parameters and the locks.
-- **The Split view for the arranger.** The arranger is the part of the Octatrack that's hardest to
+- **The Split view for the arranger** (hidden for now). The arranger is the part of the Octatrack that's hardest to
   see. The Split view puts the arrangement's timeline next to the numbers you need to edit it.
 - **Nothing outside STEP VIEW changes**, apart from these:
   - **MIXER** opens its window when you let go, not when you press it, so that MIXER + MIDI can work.

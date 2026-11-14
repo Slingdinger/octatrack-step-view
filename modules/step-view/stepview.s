@@ -180,6 +180,7 @@ sg_rest:
         .set    SG_WST, 4               | sg_win: the step's window (build 90; SG_WSC 3 the scale window)
         .set    SG_WLK, 5               | sg_win: the lock window (build 159)
         .set    SG_WAP, 6               | sg_win: the cursor in Pages' lock panel (build 169)
+        .set    SG_SPL, 0               | 1: the combo reaches the Split view (141-178; off since 179, Zach)
         .set    SG_CPW, 0               | 1: COPY without a run opens the copy window (82-162; off since 163)
         .set    SG_SY0, 50              | its lines' bottom y (from the bottom): STEP, the notes' labels,
         .set    SG_SY1, 41              | the notes, VEL / LEN's labels, their values
@@ -1132,8 +1133,12 @@ sg_vflip:
 .Lvf_f: tst.l   sg_pv
         beq.s   .Lvf_t
         clr.l   sg_pv                   | PITCH -> the panel view
+        .if     SG_SPL
         clr.l   sg_full
         bsr     sg_vwset
+        .else
+        clr.l   sg_view                 | (179: PITCH -> TRKS, no Split)
+        .endif
         bra.s   .Lvf_z
 .Lvf_t: tst.l   sg_view
         bne.s   .Lvf_p
@@ -1142,8 +1147,12 @@ sg_vflip:
         bra.s   .Lvf_n
 .Lvf_p: tst.l   sg_aud
         beq.s   .Lvf_h
+        .if     SG_SPL
         clr.l   sg_full                 | AUDIO: PAGES -> the panel view (build 158; TRKS before)
         bsr     sg_vwset
+        .else
+        clr.l   sg_view                 | (179: AUDIO PAGES -> TRKS, no Split)
+        .endif
         bra.s   .Lvf_z
 .Lvf_h: moveq   #1,%d0                  | PAGES -> PITCH: its range, cursor note and trig keys as they
         move.l  %d0,sg_pv               | were (build 142: sg_pini re-centred them on the cursor step's
@@ -1224,14 +1233,19 @@ sg_pkey:
         moveq   #1,%d1
         cmp.l   8(%sp),%d1
         bne.s   .Lpk_x                  | (its release: nothing)
-        move.l  %d0,sg_lkc
+        moveq   #SG_WAP,%d1             | (179) Pages' panel: a second press, the lock window on it
+        cmp.l   sg_win,%d1
+        bne.s   1f
+        bsr     sg_pkdb
+        bne     sg_now
+1:      move.l  %d0,sg_lkc
         clr.l   sg_lkr
         clr.l   sg_lked
         clr.l   sg_idle
         bra     sg_now
 .Lpk_x: rts
 .Lpk_0: tst.l   sg_own
-        beq.s   8f
+        beq     8f
         bsr     sg_apon                 | MIDI's Pages panel (build 165): a page key its column, press and
         beq.s   .Lpk_1                  | release eaten (a MIDI page key would leave the ARP page and the
         tst.l   sg_aud                  | view)
@@ -1244,6 +1258,8 @@ sg_pkey:
         moveq   #1,%d1
         cmp.l   8(%sp),%d1
         bne.s   .Lpk_y
+        bsr     sg_pkdb                 | (179: a second press, the lock window on it)
+        bne     sg_now
         move.l  %d0,sg_mpc
         clr.l   sg_idle
         bra     sg_now
@@ -1252,7 +1268,17 @@ sg_pkey:
         cmp.l   8(%sp),%d0
         bne.s   8f
         bsr     sg_apon                 | APGS's panel (build 157): the page key the stock's, the panel's
-        bne.s   8f                      | page; the view stays
+        beq.s   0f                      | page; the view stays
+        tst.l   sg_aud                  | (179, AUDIO: a second press within 20 ticks, the lock window on
+        beq.s   8f                      | the column, instead of the stock's SETUP)
+        move.l  4(%sp),%d0
+        subi.l  #0x22,%d0
+        moveq   #4,%d1
+        cmp.l   %d1,%d0
+        bhi.s   8f
+        bsr     sg_pkdb
+        bne     sg_now
+        bra.s   8f
 0:
         lea     -40(%sp),%sp
         movem.l %d2-%d7/%a2-%a5,(%sp)
@@ -1262,22 +1288,53 @@ sg_pkey:
 8:      jmp     0x4005578c              | the stock handler (build 174: sg_pkey is the records' handler, not
                                         | a detour on it, so another module's detour there runs after)
 
+| (179, Zach) d0 = the column (0-4) of a page key pressed in Pages' panel: the same key again within 20
+| ticks (~330 ms) opens the lock window on that column (NO there back to the panel when the cursor was
+| in it). d1 = 1 (Z clear) when it did. Keeps d0.
+sg_pkdb:
+        move.l  0x460d5de0,%d1
+        sub.l   sg_pklt,%d1
+        cmp.l   sg_pklk,%d0
+        bne.s   1f
+        cmpi.l  #20,%d1
+        bgt.s   1f
+        move.l  #-1000000,%d1           | (a third press starts again)
+        move.l  %d1,sg_pklt
+        move.l  %d0,-(%sp)
+        move.l  sg_win,-(%sp)
+        jsr     sg_lkini
+        move.l  (%sp)+,%d1
+        moveq   #SG_WAP,%d0             | (the cursor was in Pages' panel: NO back to it)
+        cmp.l   %d0,%d1
+        bne.s   2f
+        move.l  %d0,sg_lkrt
+2:      move.l  (%sp)+,%d0
+        move.l  %d0,sg_lkc
+        clr.l   sg_lkr
+        clr.l   sg_lked
+        clr.l   sg_lknm
+        clr.l   sg_idle
+        moveq   #1,%d1
+        rts
+1:      move.l  %d0,sg_pklk
+        move.l  0x460d5de0,%d1
+        move.l  %d1,sg_pklt
+        moveq   #0,%d1
+        rts
+
 | sg_pkey's (d0 = the key's column 0-4): FUNC held in the window on AUDIO's FX1 / FX2, with PLOCKS P2
 | in the remix -- that column's SETUP on / off (sg_lksu; build 173). Keeps everything.
 sg_pksu:
         lea     -12(%sp),%sp
         movem.l %d0-%d1/%a0,(%sp)
-        moveq   #SG_WLK,%d1
+        moveq   #SG_WLK,%d1             | (179: any column, both sides, the window or Pages' panel)
+        cmp.l   sg_win,%d1
+        beq.s   1f
+        moveq   #SG_WAP,%d1
         cmp.l   sg_win,%d1
         bne.s   9f
-        tst.l   sg_aud
+1:      tst.l   SG_HELD+0x2d*24
         beq.s   9f
-        move.l  #plk_sv_loc,%d1
-        beq.s   9f
-        tst.l   SG_HELD+0x2d*24
-        beq.s   9f
-        subq.l  #3,%d0
-        bmi.s   9f
         lea     sg_lksu,%a0
         moveq   #1,%d1
         sub.l   (0,%a0,%d0.l*4),%d1
@@ -8800,21 +8857,30 @@ sg_lktk:
 
 | d0 = a column (0-4): its page in d0 (0 SRC, 1 LFO, 2 AMP, 3 FX1, 4 FX2). Uses d0 a0.
 sg_lkpg:
+        move.l  %d0,sg_lkpgc            | (the column, 179)
         lea     sg_lkpt,%a0
         move.b  (0,%a0,%d0.l),%d0
         andi.l  #0xff,%d0
-        cmpi.l  #3,%d0                  | (build 173) FX1 / FX2 in the window with its SETUP shown
-        blt.s   9f                      | (sg_lksu, AUDIO): 5 FX1 SETUP, 6 FX2 SETUP
-        tst.l   sg_aud
-        beq.s   9f
-        move.l  %d1,-(%sp)
-        moveq   #SG_WLK,%d1
+        move.l  %d1,-(%sp)              | (173, 179) a column with its SETUP shown (sg_lksu, the window or
+        moveq   #SG_WLK,%d1             | Pages' panel's cursor): AUDIO's FX1 / FX2 with PLOCKS P2 5 / 6
+        cmp.l   sg_win,%d1              | (lockable), any other 10 + the page (shown, not lockable)
+        beq.s   1f
+        moveq   #SG_WAP,%d1
         cmp.l   sg_win,%d1
         bne.s   8f
-        lea     sg_lksu,%a0
-        tst.l   (-12,%a0,%d0.l*4)
+1:      lea     sg_lksu,%a0
+        move.l  sg_lkpgc,%d1
+        tst.l   (0,%a0,%d1.l*4)
         beq.s   8f
+        cmpi.l  #3,%d0
+        blt.s   2f
+        tst.l   sg_aud
+        beq.s   2f
+        move.l  #plk_sv_loc,%d1
+        beq.s   2f
         addq.l  #2,%d0
+        bra.s   8f
+2:      addi.l  #10,%d0
 8:      move.l  (%sp)+,%d1
 9:      rts
 
@@ -8824,9 +8890,84 @@ sg_lkrp:
         moveq   #0,%d1
         cmpi.l  #5,%d0
         blt.s   9f
-        subq.l  #2,%d0
         moveq   #6,%d1
+        cmpi.l  #10,%d0                 | (179: 10-14 SETUP shown only)
+        blt.s   1f
+        subi.l  #10,%d0
+        rts
+1:      subq.l  #2,%d0
 9:      rts
+
+| (179) d0 = a page (0-4), d1 = a SETUP slot (0-5): d0 = the Part's SETUP value for the cursor's track.
+| AUDIO, Part' = the bank + 0x8ed80 + part x 6322: PLAYBACK + 0x1da + 30 t + 6 machine, LFO the row
+| + 0x2f2 + 30 t at sg_aplf, the others + 0x2f2 + 30 t + 6 (page - 1). MIDI (MIDI_TRACKS.md 1):
+| B + 0x8f262 + part x 0x18b2 + 0x24 t: NOTE + 0, LFO 6 9 0x1e 0x21, ARP + 0x0c, CTL1 + 0x12, CTL2
+| + 0x18. Keeps everything else.
+sg_lksv:
+        lea     -16(%sp),%sp
+        movem.l %d1-%d2/%a0-%a1,(%sp)
+        movea.l 0x46c82456,%a0
+        moveq   #0,%d2
+        move.b  0x100b14cf,%d2          | the part
+        tst.l   sg_aud
+        beq.s   .Lsv_m
+        mulu.w  #6322,%d2
+        adda.l  %d2,%a0
+        adda.l  #0x8ed80,%a0            | a0: Part'
+        moveq   #7,%d2
+        and.l   sg_row,%d2
+        mulu.w  #30,%d2                 | 30 t
+        tst.l   %d0
+        bne.s   1f
+        moveq   #7,%d0                  | PLAYBACK: + 0x1da + 30 t + 6 machine
+        and.l   sg_row,%d0
+        moveq   #0,%d1
+        move.b  (0x22,%a0,%d0.l),%d1
+        mulu.w  #6,%d1
+        add.l   %d1,%d2
+        move.l  (%sp),%d1
+        add.l   %d1,%d2
+        addi.l  #0x1da,%d2
+        bra.s   .Lsv_r
+1:      cmpi.l  #1,%d0
+        bne.s   2f
+        move.l  (%sp),%d1               | LFO: its four
+        lea     sg_aplf,%a1
+        moveq   #0,%d0
+        move.b  (0,%a1,%d1.l),%d0
+        add.l   %d0,%d2
+        addi.l  #0x2f2,%d2
+        bra.s   .Lsv_r
+2:      subq.l  #1,%d0
+        mulu.w  #6,%d0
+        add.l   %d0,%d2
+        add.l   (%sp),%d2
+        addi.l  #0x2f2,%d2
+        bra.s   .Lsv_r
+.Lsv_m: mulu.w  #0x18b2,%d2             | MIDI
+        adda.l  %d2,%a0
+        adda.l  #0x8f262,%a0
+        moveq   #7,%d2
+        and.l   sg_row,%d2
+        mulu.w  #0x24,%d2
+        move.l  (%sp),%d1
+        cmpi.l  #1,%d0
+        bne.s   3f
+        lea     sg_mlf,%a1              | LFO: its four
+        moveq   #0,%d0
+        move.b  (0,%a1,%d1.l),%d0
+        add.l   %d0,%d2
+        bra.s   .Lsv_r
+3:      lea     sg_msb,%a1              | the page's base: NOTE 0, ARP 0x0c, CTL1 0x12, CTL2 0x18
+        move.b  (0,%a1,%d0.l),%d0
+        andi.l  #0xff,%d0
+        add.l   %d0,%d2
+        add.l   %d1,%d2
+.Lsv_r: moveq   #0,%d0
+        move.b  (0,%a0,%d2.l),%d0
+        movem.l (%sp),%d1-%d2/%a0-%a1
+        lea     16(%sp),%sp
+        rts
 
 | d0 = a SETUP slot j (0-5 FX1, 6-11 FX2): a0 = the cursor step's PLOCKS P2 byte, 0 without PLOCKS
 | P2 or a block (build 173). Uses a0.
@@ -8923,7 +9064,18 @@ sg_lkshw:
         lea     -16(%sp),%sp
         movem.l %d1-%d2/%a0-%a1,(%sp)
         move.l  %d0,%d2                 | d2: the page
-        cmpi.l  #5,%d0
+        cmpi.l  #10,%d0                 | (179) a SETUP shown only: never locked; LFO's past its 4th none
+        blt.s   5f
+        cmpi.l  #11,%d0
+        bne.s   7f
+        moveq   #3,%d1
+        cmp.l   (%sp),%d1
+        bge.s   7f
+        moveq   #0,%d0
+        bra     9f
+7:      move.l  #0xff,%d1
+        bra.s   4f
+5:      cmpi.l  #5,%d0
         blt.s   0f
         subq.l  #5,%d0                  | SETUP: PLOCKS P2's byte (build 173)
         mulu.w  #6,%d0
@@ -8944,11 +9096,13 @@ sg_lkshw:
         bne.s   2f
         lea     sg_lkfm,%a0
 2:      moveq   #0,%d0
+        cmpi.l  #5,%d2                  | (a SETUP page: every parameter, 179)
+        bge.s   6f
         move.b  (0,%a0,%d2.l),%d0
         moveq   #SG_WLK,%d1             | the window (fullscreen): every parameter (build 172)
         cmp.l   sg_win,%d1
         bne.s   3f
-        moveq   #0x3f,%d0
+6:      moveq   #0x3f,%d0
 3:      move.l  (%sp),%d1               | (d1 the parameter, saved)
         btst    %d1,%d0
         beq.s   8f
@@ -9221,6 +9375,9 @@ sg_lkini:
         clr.l   sg_lkrt                 | (175)
         clr.l   sg_lksu                 | (main pages first, build 173)
         clr.l   sg_lksu+4
+        clr.l   sg_lksu+8
+        clr.l   sg_lksu+12
+        clr.l   sg_lksu+16
         move.l  %d3,sg_lkc
         clr.l   sg_lked
         move.l  sg_aud,%d0
@@ -9329,6 +9486,10 @@ sg_lkkey:
 | window, sg_stdraw, its value the picked lock's; NO there back here, sg_wret); else the picked lock
 | edited (sg_lked: its value shown, LEVEL changes it; YES again or NO ends it).
 sg_lkyes:
+        move.l  sg_lkc,%d0              | (179: a SETUP shown only: nothing)
+        bsr     sg_lkpg
+        cmpi.l  #10,%d0
+        bge     sg_now
         tst.l   sg_aud
         bne.s   2f
         tst.l   sg_lkc                  | (column 0 is NOTE)
@@ -9589,7 +9750,11 @@ sg_lkpr:
         move.l  %d0,-(%sp)
         move.l  sg_lkc,%d0
         bsr     sg_lkpg
-        mulu.w  #6,%d0
+        cmpi.l  #10,%d0                 | (179: a SETUP shown only: nothing)
+        blt.s   1f
+        addq.l  #4,%sp
+        rts
+1:      mulu.w  #6,%d0
         add.l   (%sp)+,%d0
         move.l  #0xff,%d1
         bsr     sg_lkput
@@ -9839,7 +10004,14 @@ sg_lkval:
         lea     -12(%sp),%sp
         movem.l %d0/%a0-%a1,(%sp)
         move.l  %a3,%d0
-        cmpi.l  #5,%d0
+        cmpi.l  #10,%d0                 | (179) a SETUP shown only: the Part's setup value
+        blt.s   2f
+        subi.l  #10,%d0
+        move.l  %d5,%d1
+        bsr     sg_lksv
+        move.l  %d0,%d1
+        bra.s   9f
+2:      cmpi.l  #5,%d0
         blt.s   0f
         subq.l  #5,%d0                  | SETUP: PLOCKS P2's (build 173)
         mulu.w  #6,%d0
@@ -9906,10 +10078,13 @@ sg_lkfull:
         movea.l (%sp)+,%a1
         cmpi.l  #5,%d0
         blt.s   2f
+        bsr     sg_lkrp                 | (179) the SETUP's name by its page: PLYS LFOS AMPS FX1S FX2S,
+        mulu.w  #5,%d0                  | MIDI NOTS LFOS ARPS CT1S CT2S
         lea     sg_lkcs,%a1
-        subq.l  #5,%d0
-        mulu.w  #5,%d0
-        adda.l  %d0,%a1
+        tst.l   sg_aud
+        bne.s   3f
+        lea     sg_lkcs2,%a1
+3:      adda.l  %d0,%a1
 2:      movea.l %a1,%a2
         lea     SG_SMALL,%a0
         bsr     sg_wid
@@ -15071,7 +15246,11 @@ sg_kfpg:
         bne.s   8f
         moveq   #SG_WLK,%d0
         cmp.l   sg_win,%d0
+        beq.s   0f
+        moveq   #SG_WAP,%d0             | (Pages' panel's cursor too, 179)
+        cmp.l   sg_win,%d0
         bne.s   8f
+0:
         moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne.s   9f
@@ -15092,6 +15271,12 @@ sg_kfpg:
 sg_kfarp:
         jsr     sg_keyfn
         bne.s   8f
+        moveq   #SG_WLK,%d0             | (179) the window or Pages' panel's cursor: AMP / ARP's SETUP
+        cmp.l   sg_win,%d0
+        beq     sg_kfpg
+        moveq   #SG_WAP,%d0
+        cmp.l   sg_win,%d0
+        beq     sg_kfpg
         rts
 8:      jmp     0x400322f0
 
@@ -15802,8 +15987,12 @@ sg_lkx: .long   0                       | sg_lkfull: the column's x, width, line
 sg_lkw: .long   0
 sg_lkyl: .long  0
 sg_lky0f: .long 47
-sg_lksu: .long  0, 0                    | FX1 / FX2 SETUP shown in the window (build 173)
-sg_lkcs: .ascii "FX1S\0FX2S\0"
+sg_lksu: .long  0, 0, 0, 0, 0                    | FX1 / FX2 SETUP shown in the window (build 173)
+sg_lkcs: .ascii "PLYS\0LFOS\0AMPS\0FX1S\0FX2S\0"    | by page (0 PLAY, 1 LFO, 2 AMP, 3 FX1, 4 FX2)
+sg_lkcs2: .ascii "NOTS\0LFOS\0ARPS\0CT1S\0CT2S\0"   | MIDI's
+sg_pklk: .long  -1                      | sg_pk2: the last page key's column, its tick (179)
+sg_pklt: .long  -1000000
+sg_lkpgc: .long 0                       | sg_lkpg's column (179)
         .even
 sg_lknm: .long  0                       | Pages' panel: the cursor on the column's name (175)
 sg_lkrt: .long  0                       | SG_WAP: the window's NO back to Pages' panel (175)
@@ -15876,6 +16065,9 @@ sg_apv1: .long  0, 0                   | APGS's panel: the page's and its SETUP'
 sg_apsx: .long  -1                      | its held step, -1 none
 sg_ap2e: .long  0x4003a474, 0, 0x4003adec, 0x4003abe4, 0x4003a9dc | the page-2 editors (slot, delta): PLAYBACK, LFO none, AMP, FX1, FX2
 sg_aplf: .byte  0, 3, 0x18, 0x1b       | LFO SETUP's slots in its Part rows (sg_apcell)
+sg_mlf:  .byte  6, 9, 0x1e, 0x21        | MIDI LFO SETUP's slots in the setup record (179)
+sg_msb:  .byte  0, 0, 0x0c, 0x12, 0x18  | MIDI SETUP bases by page (NOTE, LFO -, ARP, CTL1, CTL2; 179)
+        .even
 sg_fatr: .asciz "TRIG"
 sg_fatl: .asciz "TRIGLESS"
 sg_fatn: .asciz "NO TRIG"

@@ -54,7 +54,7 @@ Octatrack OS (1.40C, MKI and MKII).
 | **MIXER + MIDI** again | Tracks ↔ Pages. |
 | **MIDI** alone | The other side: audio ↔ MIDI tracks. |
 | A MIDI **track key twice** (MIDI mode, any page) | **Pitch**, the piano roll, on that track. |
-| **FUNC + BANK**, arranger on, then **STEPS** | **STEPS**, the arrangement as steps. |
+| **FUNC + BANK**, arranger on, then **STEPS** | **Arranger Steps**, the arrangement as steps. |
 | **Arrows** | Move the cursor. |
 | **YES** on a step | Its p-locks ([lock window](#the-lock-window)). An empty step gets a trig (audio) or a note (MIDI). |
 | **LEVEL** on a picked p-lock | Change it. It's locked on the step from the first turn. |
@@ -73,7 +73,7 @@ STEP VIEW shows one side at a time: **AUDIO** or **MIDI** in the title. Press **
 
 | | Audio tracks | MIDI tracks |
 |---|---|---|
-| Tracks, Pages, STEPS | ✓ | ✓ |
+| Tracks, Pages, Arranger Steps | ✓ | ✓ |
 | Pitch | | ✓ |
 | Lock window columns | PLAY AMP LFO FX1 FX2 | NOTE ARP LFO CTL1 CTL2 |
 
@@ -90,7 +90,7 @@ a value.
 | **1. Tracks** | MIXER + MIDI | All 8 tracks, one row each. |
 | **2. Pages** | MIXER + MIDI again | One track's 64 steps, with the cursor step's p-locks under them. |
 | **3. Pitch** | A MIDI track key twice | One MIDI track as a piano roll. |
-| **4. STEPS** | STEPS in the ARR menu | The arrangement, row by row, as steps. |
+| **4. Arranger Steps** | STEPS in the ARR menu | The arrangement, row by row, as steps. |
 
 MIXER + MIDI opens the one of Tracks and Pages you used last.
 
@@ -200,15 +200,15 @@ top are notes above the screen.*
 - **The trig keys are a keyboard**: press one to hear its note, **FUNC + a trig key** writes it into
   the cursor's step. **Knob E** shifts the keyboard a semitone, **FUNC + knob E** an octave.
 
-### 4. STEPS: the arrangement
+### 4. Arranger Steps: the arrangement
 
-With the arranger on, **FUNC + BANK** opens the ARR menu; its eighth item, **STEPS**, opens this view.
+With the arranger on, **FUNC + BANK** opens the ARR menu; its eighth item, **STEPS**, opens Arranger Steps.
 In the arranger's editor, **FUNC + BANK** or **MIXER + MIDI** opens it too. **NO** leaves.
 
 ![STEPS in the ARR menu](docs/screens/steps-menu.png)
 *The ARR menu's eighth item.*
 
-![STEPS](docs/screens/steps.png)
+![Arranger Steps](docs/screens/steps.png)
 *Rows 0-3 of an arrangement, the cursor's track's steps beside each.*
 
 The grid shows the arrangement as it will play, a row's steps after the one before. At the left,
@@ -330,7 +330,7 @@ accents and slides.
 | Tracks | 16 ↔ 32 steps a row | |
 | Pages | 16 ↔ 32 steps a row | Row spacing (arranger on) |
 | Pitch | ROLL 16 → ROLL 32 → KEYS 16 | |
-| STEPS | 4 → 8 → 16 steps a row | |
+| Arranger Steps | 4 → 8 → 16 steps a row | |
 
 Knobs STEP VIEW doesn't use do nothing while it's open, so the page under it (AMP on the audio side, the
 ARP page on MIDI) never changes unseen.
@@ -345,7 +345,7 @@ reset.
 
 | Setting | What it means |
 |---|---|
-| **FULL** | 1 = Tracks, Pages or Pitch; 0 = STEPS. |
+| **FULL** | 1 = Tracks, Pages or Pitch; 0 = Arranger Steps. |
 | **PAGES** | 0 = Tracks, 1 = Pages. |
 | **PITCH** | 1 = you were in Pitch. |
 | **LAYOUT** | Pitch's layout: ROLL 16, ROLL 32 or KEYS 16. |
@@ -354,7 +354,7 @@ reset.
 | **ROLL16 BASE** | ROLL 16's bottom row. |
 | **TRIG ROOT** | The trig-key keyboard's lowest note; -1 = the C below the cursor. |
 | **FULL ZOOM** | Steps a row in Tracks and Pages: 2 = 16, 3 = 32. |
-| **ZOOM** | Steps a row in STEPS: 0 = 4, 1 = 8, 2 = 16. |
+| **ZOOM** | Steps a row in Arranger Steps: 0 = 4, 1 = 8, 2 = 16. |
 
 ---
 
@@ -364,7 +364,7 @@ These are the current answers, not final ones. Here's the thinking, so you can d
 
 - **One view per job, each from where you already are.** Tracks and Pages share MIXER + MIDI, which
   works from any page and takes no key from anything. Pitch is for notes, so it hangs off the MIDI track
-  keys (a double press did nothing there). STEPS is for the arrangement, so it sits in the arranger's
+  keys (a double press did nothing there). Arranger Steps is for the arrangement, so it sits in the arranger's
   own menu.
 - **MIDI alone for the other side.** It already switches the Octatrack between audio and MIDI tracks.
 - **NO to go back**, as everywhere on the Octatrack.

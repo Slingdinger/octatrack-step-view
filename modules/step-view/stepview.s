@@ -190,12 +190,16 @@ sg_rest:
         .set    SG_UQ, 30               | ticks without a change that close an edit (500 ms)
         .set    SG_UDIV, 6              | the pattern is summed every 6 ticks
         .weak   tm_poll                 | TRIG MODES (build 102), when the remix carries it
+        .weak   mx_poll, mx_klr         | a MIXER window module (193), when the remix carries one
         .weak   plk_sv_loc, plk_sv_mark | PLOCKS P2 (build 173): FX1 / FX2 SETUP locks, when carried
 sg_poll:
         jsr     0x40052200
         move.l  #tm_poll,%d0            | (its per-track trig mode after a load)
         beq.s   0f
         jsr     tm_poll
+0:      move.l  #mx_poll,%d0            | (its meters, 193)
+        beq.s   0f
+        jsr     mx_poll
 0:      jsr     sg_bsync                | the views' settings and BRAIN's table (build 137; jsr since 158: a bsr this far wrapped, silently, into OCTA303's tables)
         jsr     sg_clock
         jsr     sg_here
@@ -1532,7 +1536,13 @@ sg_keyfn:
 
 | Key handlers, (code, state 1 press / 2 repeat / 0 release), patched into both keymaps' records.
 sg_klr:                                 | LEFT 0x34, RIGHT 0x21 (stock 0x4004b970)
-        bsr     sg_keyok
+        move.l  #mx_klr,%d0             | the MIXER window up: its (193, a module's when carried)
+        beq.s   0f
+        tst.l   0x460e7424
+        beq.s   0f
+        movea.l %d0,%a0
+        jmp     (%a0)
+0:      bsr     sg_keyok
         bne.s   8f
         tst.l   sg_win                  | our window up: its keys (build 82)
         bne     sg_wkey

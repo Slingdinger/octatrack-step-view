@@ -87,6 +87,9 @@ MODULE = Module(
                "the tempo's drawer (EXT blinks through it with an external clock): returns on the MIDI ARP page", pad_to=8),
         Detour(0x4005222e, H("4eba9b184eb94003fed8"), "stepview", "sg_strp",
                "the periodic handler's track-strip drawers: not while the view is up (188)", pad_to=10),
+        Detour(0x40044804, H("4fefffe848d71c1c"), "stepview", "sg_marks",
+               "the track marks' painter (every pass in audio mode): not while the view is up, so its sum holds "
+               "and it stops redrawing ~60 times a second (v0.9.2; 8thmyth, issue #1)", pad_to=8),
         Detour(0x4003722c, H("2f0a42a74878002a"), "stepview", "sg_trn",
                "the transport icon's drawer: returns on the MIDI ARP page", pad_to=8),
         Detour(0x40032280, H("2279400cfeda"), "stepview", "sg_vtog",

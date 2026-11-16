@@ -1403,6 +1403,19 @@ sg_tmp:
         movem.l %d2-%d3/%a2,(%sp)       | displaced
         jmp     0x4004b094
 
+| Detour 0x40044804 (8 bytes: `lea -24(%sp),%sp` ; `movem.l %d2-%d4/%a2-%a4,(%sp)`), the track marks'
+| painter (4 px a track at x 6-7 and 126-127), called every pass from 0x40052238 in audio mode: it
+| changed the plane under sg_run's sum every pass, so the view redrew ~60 times a second, stopped too.
+| Not while the view is up (v0.9.2; found and measured by 8thmyth, issue #1: ~60 -> 2-12 redraws a
+| second).
+sg_marks:
+        bsr     sg_here
+        bne.s   1f
+        rts
+1:      lea     -24(%sp),%sp            | displaced
+        movem.l %d2-%d4/%a2-%a4,(%sp)   | displaced
+        jmp     0x4004480c
+
 | Detour 0x4003722c (8 bytes: `movel %a2,%sp@-` ; `clrl %sp@-` ; `pea 0x2a`), the transport icon's
 | drawer (play / stop, the beat boxes' frames).
 sg_trn:

@@ -11742,7 +11742,9 @@ sg_aclamp:                              | d0 kept to 0..d1
 |      it was on, the full view as it was. Leaving the page another way (a page key, MIDI) ends it too,
 |      nothing put back (sg_poll). The MIDI key's press, repeat and release in both keymaps are
 |      SymbolRefs here; with MIXER up, or after the combo's press, the stock's (0x40055678), the combo's
-|      repeat and release swallowed.
+|      repeat and release swallowed. Global, so another module that takes the MIDI key first can hand
+|      it on: jmp sg_kmidi with the key handler's registers and stack as the keymap entry gets them.
+        .globl  sg_kmidi
 sg_kmidi:
         move.l  8(%sp),%d0
         tst.l   sg_mxk                  | the combo's own repeat / release: on the release its work, as

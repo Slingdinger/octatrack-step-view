@@ -384,9 +384,19 @@ sg_tsel:
 |      value highlighted. Knobs A-F the stock's on that page (its values, a held trig's locks);
 |      FUNC + a knob the SETUP value (the page's page-2 editor; LFO's none). The 4-page rows above it.
 
-| d1 = 1 (Z clear) when the panel is up: the view, audio mode, AUDIO, the full view's Pages, the
-| arranger off, not the pitch view. Keeps d0. Uses d1.
+| d1 = 1 (Z clear) when the panel is up: Pages has it (sg_apav) and it is open (sg_apsh, build 226:
+| shut by default, a page key opens it, the same key again shuts it). Keeps d0. Uses d1.
 sg_apon:
+        moveq   #0,%d1
+        tst.l   sg_apsh
+        beq.s   9f
+        bsr.s   sg_apav
+9:      tst.l   %d1
+        rts
+
+| d1 = 1 (Z clear) when Pages has the panel: the view, the full view's Pages, the arranger off, not
+| the pitch view (226: the column names stay while it is shut). Keeps d0. Uses d1.
+sg_apav:
         moveq   #0,%d1                  | (both sides since build 165; AUDIO only, audio mode, 157-164)
         tst.l   sg_own
         beq.s   9f
@@ -424,6 +434,32 @@ sg_apfx:
 sg_apanel:
         bsr     sg_apon
         bne.s   0f
+        bsr     sg_apav                 | shut (226): the panel drawn, then rows 0-55 put back as the
+        bne.s   1f                      | grid left them: only the dotted line and the names (56-63)
+        rts
+1:      lea     -16(%sp),%sp
+        movem.l %d0/%d2/%a0-%a1,(%sp)
+        movea.l SG_FB+12,%a0
+        lea     sg_apbuf,%a1
+        move.l  #256,%d0
+2:      move.l  (%a0)+,(%a1)+
+        subq.l  #1,%d0
+        bne.s   2b
+        bsr.s   0f
+        movea.l SG_FB+12,%a0
+        lea     sg_apbuf,%a1
+        move.l  #128,%d0
+3:      move.l  (%a0),%d1               | +0 rows 32-63 (bit r - 32), +4 rows 0-31
+        andi.l  #0xff000000,%d1
+        move.l  (%a1)+,%d2
+        andi.l  #0x00ffffff,%d2
+        or.l    %d2,%d1
+        move.l  %d1,(%a0)+
+        move.l  (%a1)+,(%a0)+
+        subq.l  #1,%d0
+        bne.s   3b
+        movem.l (%sp),%d0/%d2/%a0-%a1
+        lea     16(%sp),%sp
         rts
 0:      lea     -44(%sp),%sp
         movem.l %d0-%d7/%a2-%a4,(%sp)
@@ -1252,7 +1288,7 @@ sg_pkey:
 .Lpk_x: rts
 .Lpk_0: tst.l   sg_own
         beq     8f
-        bsr     sg_apon                 | MIDI's Pages panel (build 165): a page key its column, press and
+        bsr     sg_apav                 | MIDI's Pages panel (build 165): a page key its column, press and
         beq.s   .Lpk_1                  | release eaten (a MIDI page key would leave the ARP page and the
         tst.l   sg_aud                  | view)
         bne.s   .Lpk_1
@@ -1266,6 +1302,9 @@ sg_pkey:
         bne.s   .Lpk_y
         bsr     sg_pkdb                 | (179: a second press, the lock window on it)
         bne     sg_now
+        cmp.l   sg_mpc,%d0              | (226) shut: open on it; open on it: shut
+        seq     %d1
+        bsr     sg_aptg
         move.l  %d0,sg_mpc
         clr.l   sg_idle
         bra     sg_now
@@ -1273,7 +1312,7 @@ sg_pkey:
 .Lpk_1: moveq   #1,%d0
         cmp.l   8(%sp),%d0
         bne.s   8f
-        bsr     sg_apon                 | APGS's panel (build 157): the page key the stock's, the panel's
+        bsr     sg_apav                 | APGS's panel (build 157): the page key the stock's, the panel's
         beq.s   0f                      | page; the view stays
         tst.l   sg_aud                  | (179, AUDIO: a second press within 20 ticks, the lock window on
         beq.s   8f                      | the column, instead of the stock's SETUP)
@@ -1284,6 +1323,18 @@ sg_pkey:
         bhi.s   8f
         bsr     sg_pkdb
         bne     sg_now
+        lea     -8(%sp),%sp             | (226) shut: open; open on the stock's page: shut
+        movem.l %d0/%a0,(%sp)
+        bsr     sg_apcol
+        movea.l %d0,%a0
+        movem.l (%sp),%d0
+        cmp.l   %a0,%d0
+        seq     %d1
+        bsr     sg_aptg
+        movem.l (%sp),%d0/%a0
+        addq.l  #8,%sp
+        tst.b   %d1                     | its own page's key: eaten (the stock's second press on the
+        bne     sg_now                  | page in view opens its SETUP, 179's lock window)
         bra.s   8f
 0:
         lea     -40(%sp),%sp
@@ -1293,6 +1344,28 @@ sg_pkey:
         lea     40(%sp),%sp
 8:      jmp     0x4005578c              | the stock handler (build 174: sg_pkey is the records' handler, not
                                         | a detour on it, so another module's detour there runs after)
+
+| A page key in Pages (226): d1 nonzero (the byte) when it is the panel's column. Shut: open; open on
+| that column: shut (the cursor out of the panel). Keeps d0 and d1.
+sg_aptg:
+        tst.l   sg_apsh
+        bne.s   1f
+        move.l  %d1,-(%sp)
+        moveq   #1,%d1
+        move.l  %d1,sg_apsh
+        move.l  (%sp)+,%d1
+        bra.s   9f
+1:      tst.b   %d1
+        beq.s   9f
+        clr.l   sg_apsh
+        move.l  %d1,-(%sp)
+        moveq   #SG_WAP,%d1
+        cmp.l   sg_win,%d1
+        bne.s   2f
+        clr.l   sg_win
+2:      move.l  (%sp)+,%d1
+9:      clr.l   sg_idle
+        rts
 
 | (179, Zach) d0 = the column (0-4) of a page key pressed in Pages' panel: the same key again within 20
 | ticks (~330 ms) opens the lock window on that column (NO there back to the panel when the cursor was
@@ -11500,6 +11573,9 @@ sg_fzfit:
         moveq   #24,%d1
         bra.s   6f
 7:      moveq   #64,%d1
+        bsr     sg_apav                 | shut (226): the names' rows 56-63 only
+        beq.s   6f
+        moveq   #54,%d1
 6:      cmp.l   %d1,%d0
         bgt.s   8f
         moveq   #0,%d0
@@ -16368,6 +16444,7 @@ sg_lkau: .long  0                       | sg_aud when it opened (build 160)
 sg_lked: .long  0                       | 1: the picked lock edited (YES; LEVEL changes it; build 169)
 sg_wret: .long  0                       | the window the note window's NO goes back to, 0 none (169)
 sg_mpc: .long   0                       | MIDI Pages' panel column (build 165)
+sg_apsh: .long  0                       | Pages' panel open (226; shut by default)
 sg_flen: .long  1                       | 1: Tracks shows each track's own steps, not looped (166; always since 167)
 sg_lkhc: .long  0                       | sg_lkcol's: the column named inverted
 sg_lkhr: .long  -1                      | its line inverted, -1 none
@@ -16940,6 +17017,7 @@ sg_uh:  .space  SG_UN*SG_PSZ            | the undo states, 365,680 B
 sg_clip: .space 64*48                   | the clip: 64 steps of SG_CSZ (build 82)
 sg_mbuf: .space 0x9c4                   | a MIDI track's clipboard, an audio track converted (build 113)
 sg_slm: .space  64                      | its steps slid into
+sg_apbuf: .space 1024                   | Pages' shut panel: the plane before it (226)
         .balign 4
 sg_names: .space SGN_B                  | the track names (build 140, names.work)
 sgn_stage: .space SGN_B                 | names.work read here before it is applied

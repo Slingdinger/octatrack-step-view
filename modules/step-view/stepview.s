@@ -2083,7 +2083,9 @@ sg_kyes:                                | YES (stock 0x4005e4c8)
         tst.l   sg_pv
         beq.s   0f
         tst.l   sg_mode
-        beq     sg_pyw
+        bne.s   0f
+        jmp     sg_pyw                  | (past 32 KB, build 226)
+0:
 0:
         tst.l   sg_mode
         beq     1f
@@ -4676,7 +4678,7 @@ sg_tmv:
         bne.s   4f
         btst    #2,15(%a0)              | a pad (build 90): on past it
         bne.s   0b
-        bra.s   9f
+        bra     9f
 4:      move.l  %d0,sg_trow
         moveq   #1,%d6
         bra.s   9f
@@ -10763,11 +10765,13 @@ sg_fpcs:
         rts
 0:      moveq   #0,%d0
         move.w  0x800065b4,%d0          | P
+        bsr     sg_pscl                 | (in the track's own steps, build 226; d1 set: scaled)
         tst.l   sg_view
         beq.s   1f
-        moveq   #63,%d1
-        and.l   %d1,%d0
-1:      move.l  %d0,-(%sp)
+        andi.l  #63,%d0
+1:      tst.l   %d1
+        bne.s   .Lsg_fpn
+        move.l  %d0,-(%sp)
         sub.l   %d5,%d0                 | (P - step) mod length, made positive
         move.l  %d0,%d1
         divs.l  %d6,%d1
@@ -10779,6 +10783,74 @@ sg_fpcs:
         sub.l   %d0,%d1                 | P less that
         move.l  %d1,sg_fpc
 9:      rts
+.Lsg_fpn:                               | scaled (build 226): the column nearest P whose step (mod d6)
+        move.l  %d0,-(%sp)              | is the one playing, kept within the window
+        move.l  %d5,%d0
+        sub.l   (%sp),%d0               | (step - P) mod length, made positive
+        move.l  %d0,%d1
+        divs.l  %d6,%d1
+        muls.l  %d6,%d1
+        sub.l   %d1,%d0
+        bpl.s   1f
+        add.l   %d6,%d0
+1:      move.l  %d0,%d1                 | past half the length: the one before
+        add.l   %d1,%d1
+        cmp.l   %d6,%d1
+        ble.s   2f
+        sub.l   %d6,%d0
+2:      add.l   (%sp)+,%d0
+        bpl.s   3f
+        add.l   %d6,%d0
+3:      tst.l   sg_view
+        beq.s   4f
+        moveq   #63,%d1
+        cmp.l   %d1,%d0
+        ble.s   4f
+        sub.l   %d6,%d0
+4:      move.l  %d0,sg_fpc
+        rts
+
+| d0 = the count P in the row's track's own steps (build 226): in PER TRACK (+0x8e55) P x the track's
+| SCALE (+0x29 of its record, an audio track's +0x51) over the master's (+0x8e52), in eighths (2X 16,
+| 3/2X 12, 1X 8, 3/4X 6, 1/2X 4, 1/4X 2, 1/8X 1); d1 nonzero when they differ. A track at 2X under a
+| 1X master plays its steps twice a count: P as counted put its play mark past the window's columns
+| every other pass. a2 the pattern, a3 the track's record. Uses d0 d1.
+sg_pscl:
+        lea     -12(%sp),%sp
+        movem.l %d2-%d3/%a0,(%sp)
+        movea.l %a2,%a0
+        adda.l  #0x8e50,%a0
+        moveq   #0,%d1
+        tst.b   5(%a0)
+        beq.s   9f
+        moveq   #0,%d2
+        move.b  2(%a0),%d2              | the master's SCALE
+        moveq   #0,%d3
+        move.b  0x29(%a3),%d3           | the track's
+        tst.l   sg_aud
+        beq.s   1f
+        move.b  0x51(%a3),%d3
+1:      cmp.l   %d2,%d3
+        beq.s   9f
+        moveq   #6,%d1
+        cmp.l   %d1,%d2
+        bhi.s   8f
+        cmp.l   %d1,%d3
+        bhi.s   8f
+        lea     sg_sclm,%a0
+        moveq   #0,%d1
+        move.b  (0,%a0,%d3.l),%d1
+        mulu.l  %d1,%d0
+        moveq   #0,%d1
+        move.b  (0,%a0,%d2.l),%d1
+        divu.l  %d1,%d0
+        moveq   #1,%d1
+        bra.s   9f
+8:      moveq   #0,%d1
+9:      movem.l (%sp),%d2-%d3/%a0
+        lea     12(%sp),%sp
+        rts
+sg_sclm: .byte  16,12,8,6,4,2,1,0
 
 | Z clear in the full 8-track window's 64, two lines of 32 a track (build 93). Uses d0.
 sg_f2l:
@@ -14269,7 +14341,7 @@ sg_ptr:
 sg_pled:
         lea     -24(%sp),%sp
         movem.l %d2-%d6/%a3,(%sp)
-        bsr     sg_sel                  | a1 the record, a0 the Part's NOTE page
+        jsr     sg_sel                  | a1 the record, a0 the Part's NOTE page
         movea.l %a1,%a3
         moveq   #0,%d6
         move.b  (%a0),%d6

@@ -1277,9 +1277,17 @@ sg_pkey:
         bne.s   .Lpk_x                  | (its release: nothing)
         moveq   #SG_WAP,%d1             | (179) Pages' panel: a second press, the lock window on it
         cmp.l   sg_win,%d1
-        bne.s   1f
+        bne.s   2f
         bsr     sg_pkdb
         bne     sg_now
+        bra.s   1f
+2:      bsr     sg_lkdb                 | (228) the lock window over Pages: a second press, back to
+        beq.s   1f                      | the panel on that column
+        moveq   #2,%d0
+        cmp.l   %d0,%d1
+        bne     sg_now
+        jsr     sg_now                  | (AUDIO, another page: the stock's page key moves the panel)
+        jmp     0x4005578c
 1:      move.l  %d0,sg_lkc
         clr.l   sg_lkr
         clr.l   sg_lked
@@ -1365,6 +1373,57 @@ sg_aptg:
         clr.l   sg_win
 2:      move.l  (%sp)+,%d1
 9:      clr.l   sg_idle
+        rts
+
+| (228, Zach) d0 = the column (0-4) of a page key pressed in the lock window: in Pages, the same key
+| again within 20 ticks (~330 ms) closes the window back to the half panel, open on that column (the
+| panel's cursor back in it when the window came from there, sg_lkrt). d1 = 0 (Z set) not; 1 closed;
+| 2 closed and, AUDIO, the column not the stock's page: the stock's page key to follow. Keeps d0.
+sg_lkdb:
+        bsr     sg_apav
+        beq     8f
+        move.l  0x460d5de0,%d1
+        sub.l   sg_pklt,%d1
+        cmp.l   sg_pklk,%d0
+        bne     8f
+        cmpi.l  #20,%d1
+        bgt     8f
+        move.l  #-1000000,%d1           | (a third press starts again)
+        move.l  %d1,sg_pklt
+        clr.l   sg_lked
+        clr.l   sg_lknm
+        clr.l   sg_lkr
+        clr.l   sg_idle
+        moveq   #1,%d1
+        move.l  %d1,sg_apsh
+        move.l  sg_lkrt,%d1
+        clr.l   sg_lkrt
+        cmpi.l  #SG_WAP,%d1
+        beq.s   1f
+        moveq   #0,%d1
+        clr.l   sg_mode
+1:      move.l  %d1,sg_win
+        tst.l   sg_aud
+        bne.s   2f
+        move.l  %d0,sg_mpc
+        moveq   #1,%d1
+        rts
+2:      lea     -8(%sp),%sp
+        movem.l %d0/%a0,(%sp)
+        bsr     sg_apcol
+        move.l  %d0,%d1
+        movem.l (%sp),%d0/%a0
+        lea     8(%sp),%sp
+        cmp.l   %d0,%d1
+        beq.s   3f
+        moveq   #2,%d1
+        rts
+3:      moveq   #1,%d1
+        rts
+8:      move.l  %d0,sg_pklk
+        move.l  0x460d5de0,%d1
+        move.l  %d1,sg_pklt
+        moveq   #0,%d1
         rts
 
 | (179, Zach) d0 = the column (0-4) of a page key pressed in Pages' panel: the same key again within 20
@@ -11568,12 +11627,12 @@ sg_fzfit:
         muls.l  %d2,%d4
         add.l   %d4,%d0
         addi.l  #11,%d0                 | (18 under the bar until 163)
-        bsr     sg_apon                 | APGS's panel under the rows (build 157): rows 26-63 are its
+        jsr     sg_apon                 | APGS's panel under the rows (build 157): rows 26-63 are its
         beq.s   7f                      | (33-63 until 163)
         moveq   #24,%d1
         bra.s   6f
 7:      moveq   #64,%d1
-        bsr     sg_apav                 | shut (226): the names' rows 56-63 only
+        jsr     sg_apav                 | shut (226): the names' rows 56-63 only
         beq.s   6f
         moveq   #54,%d1
 6:      cmp.l   %d1,%d0

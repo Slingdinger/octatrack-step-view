@@ -6170,9 +6170,12 @@ sg_panel:
         moveq   #32,%d0                 | a pattern to come flashes, its countdown with it (build 73: the
         and.l   sg_bk,%d0               | name alone until 81; bit 5, with the M flash, since 76): the
         beq.s   8f                      | line's box cleared in the off phase
-        move.l  %d4,%d0
+        moveq   #56,%d2                 | x1 (229, Zach: in the timeline STEPS readout the divider is at
+        bsr     sg_tlon                 | x30 and the grid at x32, so x56 cleared the divider and two
+        beq.s   6f                      | steps at 8/R; clamp before the divider there, 56 on the panel)
+        moveq   #29,%d2
+6:      move.l  %d4,%d0
         moveq   #15,%d1
-        moveq   #56,%d2
         moveq   #21,%d3
         bsr     sg_clr
 8:      tst.l   sg_tl2                  | the timeline repeating: the infinity at x 29 (12 until 153)
@@ -11244,6 +11247,28 @@ sg_tisc:                                | a scene d0 (0xff none) at a1: "-" or 1
 sg_fdots:
         lea     -24(%sp),%sp
         movem.l %d2-%d7,(%sp)
+        tst.l   sg_flen                 | (229, Zach: the lengths view -- no measurement dots when no
+        beq.s   .Lfd_go                 | track is longer than 16 steps; the dots only read a long track)
+        tst.l   sg_view
+        bne.s   .Lfd_go
+        moveq   #0,%d4                  | d4: the longest track's length
+        moveq   #0,%d7                  | d7: the track
+1:      move.l  %d7,%d1
+        bsr     sg_trk                  | d6 its length (its scale handled)
+        cmp.l   %d4,%d6
+        ble.s   2f
+        move.l  %d6,%d4
+2:      addq.l  #1,%d7
+        moveq   #8,%d0
+        cmp.l   %d0,%d7
+        blt.s   1b
+        moveq   #16,%d0
+        cmp.l   %d0,%d4
+        bgt.s   .Lfd_go
+        movem.l (%sp),%d2-%d7           | all 16 or shorter: no dots
+        lea     24(%sp),%sp
+        rts
+.Lfd_go:
         moveq   #16,%d5                 | d5: the steps between the lines
         moveq   #32,%d0
         cmp.l   sg_zn,%d0

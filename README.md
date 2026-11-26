@@ -88,7 +88,7 @@ a value.
 | View | Open it with | What it shows |
 |---|---|---|
 | **1. Tracks** | MIXER + MIDI | All 8 tracks, one row each. |
-| **2. Pages** | MIXER + MIDI again | One track's 64 steps, with the cursor step's p-locks under them. |
+| **2. Pages** | MIXER + MIDI again | One track's 64 steps. A page key opens the cursor step's p-locks under them. |
 | **3. Pitch** | A MIDI track key twice | One MIDI track as a piano roll. |
 | **4. Arranger Steps** | STEPS in the ARR menu | The arrangement, row by row, as steps. |
 
@@ -118,7 +118,7 @@ at the right: track 1 is 64 steps, track 5 is 32, the others 16.*
 *Press encoder D for 16 steps a row.*
 
 ![Tracks while playing](docs/screens/tracks-playing.png)
-*Playing: each row's play mark is at its own track's step.*
+*Playing: the thin bar is the play mark. Each row's is at its own track's step.*
 
 **Track lengths** (SCALE set to PER TRACK). Press RIGHT past a track's last step: the cursor lands on
 its length, which flashes. **LEVEL** changes it (2-64), **FUNC + LEVEL** by 4, **UP / DOWN** go to the
@@ -136,8 +136,15 @@ RIGHT goes back to step 1.
 
 ### 2. Pages: one track, all 64 steps
 
-The cursor's track, its four pages stacked, with the cursor step's p-locks underneath in the
-[lock window's](#the-lock-window) five columns, four lines tall.
+The cursor's track, its four pages stacked. Along the bottom are the names of the
+[lock window's](#the-lock-window) five columns.
+
+![Pages](docs/screens/pages.png)
+*Audio track 1, 32 steps a row. The box is the cursor.*
+
+**The lock panel.** Press a **page key**: the panel opens on that column, with the cursor step's
+p-locks in the five columns, four lines tall. The same key again shuts it, and the grid takes its
+rows back.
 
 ![Pages with the lock panel](docs/screens/pages-panel.png)
 *Audio track 1, step 1: PTCH and STRT locked on PLAY, VOL on AMP (the dots). The cursor is in AMP, so
@@ -151,11 +158,12 @@ AMP is wide, with its values.*
 
 | Do this | What happens |
 |---|---|
-| **YES** on a step, or **DOWN** past the grid | Into the panel. The step keeps a box round it on the grid. |
-| **LEFT / RIGHT**, a **page key** | Pick a column. It widens. |
+| A **page key** | Open the panel on that column. The same key again shuts it. |
+| **YES** on a step, or **DOWN** past the grid (panel open) | Into the panel. The step keeps a box round it on the grid. |
+| **LEFT / RIGHT**, another **page key** | Pick a column. It widens. |
 | **UP / DOWN** | Pick a line. DOWN past the last: the column's name. UP off the first: back to the grid. |
 | **LEVEL** on a line | Change it (locked from the first turn). |
-| **YES** on a column's name, or its **page key twice** | The full [lock window](#the-lock-window) on that column. NO comes back here. |
+| **YES** on a column's name, or its **page key twice** | The full [lock window](#the-lock-window) on that column. NO, or a page key twice, comes back here. |
 | **FUNC + a page key** | That column's [SETUP page](#setup-pages). |
 | Hold **FUNC** | The narrow columns show values. |
 | **NO** | Back to the grid. |
@@ -256,6 +264,7 @@ One column for each page key, in the order the keys sit under the screen:
 | Do this | What happens |
 |---|---|
 | A **page key**, or **LEFT / RIGHT** | Pick a column. |
+| A **page key twice** (opened from Pages) | Back to Pages' panel, on that column. |
 | **UP / DOWN** | Pick a parameter. |
 | **LEVEL** | Change it. An unlocked one is locked from the Part's value. |
 | **YES** on MIDI's NOTE column | The [note window](#the-note-window-midi). |
@@ -403,7 +412,8 @@ repo). STEP VIEW needs two other octabam modules: **BRAIN** (settings) and **STO
    `make bus REMIX=<yours>`.
 
 If you also use octabam's TRIG MODES module, STEP VIEW keeps the active track's trig mode in step
-with it.
+with it. With [MULTI](https://github.com/Slingdinger/MULTI-SAMPLER) in the build, STEP VIEW's page
+hook draws MULTI's pages.
 
 **FX SETUP locks** need octabam's **PLOCKS P2** module (with SCENES P2 and EVENTS, which it requires)
 and two small routines added to it, so STEP VIEW can read and write its locks. From your octabam

@@ -55,6 +55,7 @@
 
 | Detour 0x4004e936 (jsr, 8 bytes: `moveq #1,%d3` ; `movel %d3,0x46c7c72c`), the main view draw
 | (0x4004d948(page)) after the page is drawn; a6 is its frame, 8(a6) the page drawn.
+        .weak   mf_page
 sg_page:
         move.l  8(%a6),%d0
         bsr     sg_vis
@@ -68,8 +69,14 @@ sg_page:
         bsr     sg_run
         bra.s   1f
 2:      tst.l   sg_on                   | the first page drawn after the ARP page: the stock's left side back
-        beq.s   1f
+        beq.s   4f
         bsr     sg_rest
+4:      lea     mf_page,%a0             | MULTI's PLAYBACK page (Slingdinger/MULTI-SAMPLER), weak: its SET box
+        cmpa.l  #0,%a0
+        beq.s   1f
+        move.l  8(%a6),-(%sp)
+        jsr     (%a0)
+        addq.l  #4,%sp
 1:      moveq   #1,%d3                  | displaced
         move.l  %d3,0x46c7c72c          | displaced
         rts
@@ -3463,14 +3470,14 @@ sg_run:
         add.l   %d4,%d3
         cmp.l   sg_fpc,%d3
         bne.s   .Lsg_cm
-        bsr     sg_mark
+        bsr     sg_play                 | the step playing, full view: the 2 px bar
         bra.s   .Lsg_cm
 .Lsg_pmn:
         move.l  %a6,%d3
         add.l   %d4,%d3
         cmp.l   %d5,%d3
         bne.s   .Lsg_cm
-        bsr     sg_mark                 | the cursor's filled box, steady (build 77: no blink)
+        bsr     sg_play                 | the step playing: the 2 px bar
 .Lsg_cm:                                | the cursor (build 76): a frame round its step, the on phase
         bsr     sg_fstep
         bsr     sg_gcur
@@ -3730,7 +3737,7 @@ sg_run:
         add.l   sg_tof,%d0              | (the count runs from 0 at the offset, measured: build 100)
         cmp.l   %d0,%d5
         bne.s   .Lsg_tcm
-        bsr     sg_mark                 | the cursor's filled box, steady (build 77: no blink)
+        bsr     sg_play                 | the step playing: the 2 px bar
 .Lsg_tcm:                               | the cursor: a frame round its step, the on phase (build 76)
         cmp.l   sg_trow,%d7
         bne.s   .Lsg_tcn
@@ -3917,6 +3924,27 @@ sg_mark:
         addq.l  #8,%sp
         rts
 
+| The playing step, drawn as a 2 px solid vertical bar set a pixel in from the cell's left, full row
+| height -- a px of clear each side (v0.9.3: on the MKI's screen a full-cell mark smears as it
+| sweeps, 8thmyth, issue #1; the bar lights a quarter of the area). Same registers as sg_mark
+| (d4 column, a4 row top; saves d2-d3, d0-d1 scratch).
+sg_play:
+        lea     -8(%sp),%sp
+        movem.l %d2-%d3,(%sp)
+        move.l  %d4,%d0
+        bsr     sg_colx                 | d0 = the cell's x
+        move.l  %a4,%d1
+        subq.l  #1,%d1                  | top - 1, as sg_mark
+        move.l  %d0,%d2
+        addq.l  #2,%d2                  | 2 px wide, a px in from the cell's left edge
+        move.l  sg_rh,%d3
+        add.l   %a4,%d3                 | the full row height
+        lea     SG_FILL,%a0
+        bsr     sg_r1
+        movem.l (%sp),%d2-%d3
+        addq.l  #8,%sp
+        rts
+
 | Pages' panel's step on the grid (175): sg_mark's area a pixel larger all round, outlined. d4 = the
 | column, a4 = the row's top. Uses d0 d1 a0 a1.
 sg_hbox:
@@ -3998,8 +4026,8 @@ sg_mch:
         muls.l  %d0,%d1
         adda.l  %d1,%a0
         moveq   #0,%d1
-        move.w  24(%a0),%d1
-        bra.s   1f
+        move.b  25(%a0),%d1             | the row's mute mask byte, as sg_tmut reads it (the word at +24
+        bra.s   1f                      | took the byte before it in too and flashed M)
 0:      moveq   #0,%d1
 1:      or.l    sg_mm,%d1
         beq.s   2f
